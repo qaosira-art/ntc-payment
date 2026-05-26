@@ -1,179 +1,156 @@
 /**
- * TuitionStore - IndexedDB storage engine for Tuition Payment Web App
- * Persists student details, tuition amounts, payment status, and uploaded PNG slips.
+ * TuitionStore - Supabase Storage engine for Tuition Payment Web App
+ * Persists student details, tuition amounts, payment status, and uploaded PNG slips to the cloud.
  */
+
+const SUPABASE_URL = 'https://pshkcdjluvgtuawqumio.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaGtjZGpsdXZndHVhd3F1bWlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NDk4OTYsImV4cCI6MjA5NTMyNTg5Nn0.xOizPzboTNtAEYYfdoR1qhMV58USapPUxgcKjMo4Naw';
 
 class TuitionStore {
     constructor() {
-        this.dbName = 'TuitionPaymentDB';
-        this.dbVersion = 1;
-        this.db = null;
+        // Initialize Supabase client
+        this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     /**
-     * Initialize the IndexedDB database and seed data if empty
+     * Initialize the database and seed data if empty
      */
     async init() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.dbVersion);
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                
-                // Store for student profiles
-                if (!db.objectStoreNames.contains('students')) {
-                    db.createObjectStore('students', { keyPath: 'id' });
-                }
-                
-                // Store for payments and slip files (stored as Base64/Blobs)
-                if (!db.objectStoreNames.contains('payments')) {
-                    const paymentStore = db.createObjectStore('payments', { keyPath: 'id', autoIncrement: true });
-                    paymentStore.createIndex('studentId', 'studentId', { unique: false });
-                    paymentStore.createIndex('status', 'status', { unique: false });
-                }
-            };
-
-            request.onsuccess = async (event) => {
-                this.db = event.target.result;
-                try {
-                    await this.seedDataIfEmpty();
-                    resolve(true);
-                } catch (err) {
-                    console.error("Failed to seed database", err);
-                    resolve(true); // Still resolve so the app loads
-                }
-            };
-
-            request.onerror = (event) => {
-                console.error("IndexedDB initialization error:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-
-    /**
-     * Get a transaction for a specific store
-     */
-    getTransaction(storeName, mode = 'readonly') {
-        if (!this.db) throw new Error("Database not initialized");
-        const transaction = this.db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        return { transaction, store };
+        try {
+            await this.seedDataIfEmpty();
+            return true;
+        } catch (err) {
+            console.error("Failed to initialize or seed Supabase database", err);
+            return true; // Still resolve so the app loads (it will show empty states if tables missing)
+        }
     }
 
     // --- STUDENT OPERATIONS ---
 
     async getStudents() {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('students', 'readonly');
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('students')
+            .select('*');
+        if (error) throw error;
+        return data || [];
     }
 
     async getStudentById(id) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('students', 'readonly');
-            const request = store.get(id);
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('students')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        // Supabase returns an error for single() if 0 rows are found, which is annoying. Let's catch it.
+        if (error && error.code === 'PGRST116') return null; 
+        if (error) throw error;
+        return data;
     }
 
     async addStudent(student) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('students', 'readwrite');
-            const request = store.add(student);
-            request.onsuccess = () => resolve(student);
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('students')
+            .insert([student])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
     }
 
     async updateStudent(student) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('students', 'readwrite');
-            const request = store.put(student);
-            request.onsuccess = () => resolve(student);
-            request.onerror = () => reject(request.error);
-        });
+        const { id, ...updateData } = student;
+        const { data, error } = await this.supabase
+            .from('students')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data || student;
     }
 
     async deleteStudent(id) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('students', 'readwrite');
-            const request = store.delete(id);
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => reject(request.error);
-        });
+        const { error } = await this.supabase
+            .from('students')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        return true;
     }
 
     // --- PAYMENT OPERATIONS ---
 
     async getPayments() {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('payments', 'readonly');
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select('*');
+        if (error) throw error;
+        return data || [];
     }
 
     async getPaymentsByStudentId(studentId) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('payments', 'readonly');
-            const index = store.index('studentId');
-            const request = index.getAll(IDBKeyRange.only(studentId));
-            request.onsuccess = () => {
-                // Sort payments by date descending
-                const sorted = (request.result || []).sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
-                resolve(sorted);
-            };
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select('*')
+            .eq('studentId', studentId)
+            .order('dateTime', { ascending: false });
+        if (error) throw error;
+        return data || [];
     }
 
     async addPayment(payment) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('payments', 'readwrite');
-            const request = store.add(payment);
-            request.onsuccess = (event) => {
-                payment.id = event.target.result;
-                resolve(payment);
-            };
-            request.onerror = () => reject(request.error);
-        });
+        // ID is auto-generated by Supabase, remove it if it exists (e.g. from mock data)
+        const { id, ...insertData } = payment;
+        const { data, error } = await this.supabase
+            .from('payments')
+            .insert([insertData])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
     }
 
     async updatePayment(payment) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('payments', 'readwrite');
-            const request = store.put(payment);
-            request.onsuccess = () => resolve(payment);
-            request.onerror = () => reject(request.error);
-        });
+        const { id, ...updateData } = payment;
+        const { data, error } = await this.supabase
+            .from('payments')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data || payment;
     }
 
     async getPaymentById(id) {
-        return new Promise((resolve, reject) => {
-            const { store } = this.getTransaction('payments', 'readonly');
-            const request = store.get(Number(id));
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error);
-        });
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select('*')
+            .eq('id', id)
+            .single();
+        if (error && error.code === 'PGRST116') return null;
+        if (error) throw error;
+        return data;
     }
 
     // --- SEED MOCK DATA ---
 
     async seedDataIfEmpty() {
-        if (localStorage.getItem('tuition_seeded') === 'true') return;
-        const students = await this.getStudents();
+        // Try to fetch students to see if table exists and is empty
+        let students = [];
+        try {
+            students = await this.getStudents();
+        } catch (e) {
+            console.error("Supabase table might not exist yet. Please run the SQL script.");
+            return;
+        }
+
         if (students.length > 0) {
-            localStorage.setItem('tuition_seeded', 'true');
             return; // Database already seeded
         }
 
-        console.log("Database empty. Seeding tuition payment mock data...");
+        console.log("Database empty. Seeding tuition payment mock data to Supabase...");
 
         // 1. Create Mock Student list
         const mockStudents = [
@@ -231,7 +208,7 @@ class TuitionStore {
                 slipName: "slip_STD003_1715852700.png",
                 status: "pending",
                 refNo: "BAY2026051670982",
-                verificationDate: "",
+                verificationDate: null,
                 comment: ""
             },
             // STD004: Payment Rejected
@@ -252,8 +229,7 @@ class TuitionStore {
             await this.addPayment(payment);
         }
 
-        console.log("Tuition Database Seeded successfully with mock PNG slips!");
-        localStorage.setItem('tuition_seeded', 'true');
+        console.log("Tuition Supabase Database Seeded successfully with mock PNG slips!");
     }
 
     /**
