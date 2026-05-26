@@ -198,22 +198,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function switchView(viewId) {
+        window.scrollTo(0, 0); // รีเซ็ตตำแหน่ง scroll ทันที
         const sections = document.querySelectorAll('.view-section');
         
         sections.forEach(sec => {
             if (sec.id === viewId) {
                 sec.classList.remove('hidden');
-                // บังคับให้ CSS Animation เริ่มใหม่ทุกครั้งที่เปลี่ยนหน้าเพื่อความลื่นไหล
+                // บังคับรีเซ็ต animation และเล่น effect ใหม่
                 sec.style.animation = 'none';
-                void sec.offsetWidth; // Trigger reflow
-                sec.style.animation = ''; 
+                void sec.offsetWidth; 
+                // ใช้เอฟเฟคค่อยๆ โผล่และขยายขึ้นนิดนึง (เหมือนในแอป iPhone)
+                sec.style.animation = 'fadeInScale 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards';
             } else {
                 sec.classList.add('hidden');
             }
         });
-        
-        // เอา smooth scroll ออกตอนเปลี่ยนหน้า เพราะมันจะตีกับ Animation SlideUp ทำให้จอมันกระตุก
-        window.scrollTo(0, 0);
     }
 
     // =========================================================================
@@ -221,9 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     async function renderStudentMockGrid() {
         const grid = document.getElementById('mock-students-grid');
-        grid.innerHTML = '';
+        // แสดงสถานะกำลังโหลดข้อมูล
+        grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #86868b; font-size: 14px;"><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังโหลดข้อมูลจากระบบหลังบ้าน...</div>';
         
         const students = await window.tuitionStore.getStudents();
+        grid.innerHTML = '';
         
         students.forEach(student => {
             const card = document.createElement('div');
@@ -826,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const badge = document.getElementById('slip-interactive-badge');
             if (badge) {
                 const last4 = state.currentStudent.id.replace(/\D/g, '').slice(-4) || state.currentStudent.id.slice(-4);
-                let genText = state.currentStudent.generation || '-';
+                let genText = state.currentStudent.year || '-';
                 if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
                 document.getElementById('stamp-badge-name').textContent = `${genText} รหัส ${last4} ห้อง ${state.currentStudent.room || '-'}`;
                 document.getElementById('stamp-badge-id').textContent = state.currentStudent.name;
@@ -843,6 +844,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const previewImg = document.getElementById('slip-preview-img');
             previewImg.src = base64Png;
             previewContainer.style.display = 'block';
+
+            // Auto-populate the main input payment amount matching mock slip
+            const mainPayInput = document.getElementById('input-pay-amount');
+            if (mainPayInput) {
+                mainPayInput.value = amount;
+                mainPayInput.dispatchEvent(new Event('input'));
+            }
 
             // Clear error if present
             document.getElementById('slip-error').style.display = 'none';
@@ -873,187 +881,219 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('form-tuition-payment').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validate inputs
-            const payAmount = getFinalPayAmount();
-            const remaining = state.currentStudent.totalTuition - state.currentStudent.paidAmount;
+            const submitBtn = document.getElementById('btn-submit-payment');
+            const origHtml = submitBtn.innerHTML;
             
-            if (payAmount > remaining || payAmount <= 0) {
-                document.getElementById('custom-amount-error').style.display = 'block';
-                return;
-            }
-            
-            if (!state.uploadedSlipBase64) {
-                document.getElementById('slip-error').style.display = 'block';
-                return;
-            }
-
-            // If uploader stamp badge is visible, burn/stamp it into the raw clean uploaded image copy strictly at the top-right corner!
-            const badge = document.getElementById('slip-interactive-badge');
-            
-            if (badge && badge.style.display !== 'none' && state.originalUploadedSlipBase64) {
-                // Show custom visual indicator during render
-                const submitBtn = document.querySelector('#form-tuition-payment button[type="submit"]');
-                const origHtml = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังประมวลผลรูปภาพ...';
-
-                // Canvas high-resolution stamping block
-                const stampedSlip = await new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Draw raw base image
-                        ctx.drawImage(img, 0, 0);
-                        
-                        const width = canvas.width;
-                        const height = canvas.height;
-                        const scale = width / 600;
-                        
-                        const fontSize = Math.max(23 * scale, 19);
-                        const padding = 18 * scale;
-                        const lineSpacing = 8 * scale;
-                        
-                        // Calculate sizes
-                        const boxWidth = 370 * scale;
-                        const boxHeight = (fontSize * 2) + lineSpacing + (padding * 2.2);
-                        
-                        // Target coordinates fixed strictly at top-right corner (margin 2.5% of width)
-                        const gap = 0.025 * width;
-                        const targetX = width - boxWidth - gap;
-                        const targetY = gap;
-                        
-                        // Soft premium drop shadow
-                        ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-                        ctx.shadowBlur = 12 * scale;
-                        ctx.shadowOffsetX = 0;
-                        ctx.shadowOffsetY = 4 * scale;
-                        
-                        // Draw white rounded rect
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                        const r = 12 * scale;
-                        ctx.beginPath();
-                        ctx.moveTo(targetX + r, targetY);
-                        ctx.lineTo(targetX + boxWidth - r, targetY);
-                        ctx.quadraticCurveTo(targetX + boxWidth, targetY, targetX + boxWidth, targetY + r);
-                        ctx.lineTo(targetX + boxWidth, targetY + boxHeight - r);
-                        ctx.quadraticCurveTo(targetX + boxWidth, targetY + boxHeight, targetX + boxWidth - r, targetY + boxHeight);
-                        ctx.lineTo(targetX + r, targetY + boxHeight);
-                        ctx.quadraticCurveTo(targetX, targetY + boxHeight, targetX, targetY + boxHeight - r);
-                        ctx.lineTo(targetX, targetY + r);
-                        ctx.quadraticCurveTo(targetX, targetY, targetX + r, targetY);
-                        ctx.closePath();
-                        ctx.fill();
-                        
-                        // Reset shadow
-                        ctx.shadowColor = 'transparent';
-                        ctx.shadowBlur = 0;
-                        ctx.shadowOffsetX = 0;
-                        ctx.shadowOffsetY = 0;
-                        
-                        // Blue border stroke
-                        ctx.strokeStyle = 'rgba(0, 102, 204, 0.25)';
-                        ctx.lineWidth = 2 * scale;
-                        ctx.stroke();
-                        
-                        // Slate text details
-                        ctx.fillStyle = '#1d1d1f';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'top';
-                        
-                        const nameText = document.getElementById('stamp-badge-name').textContent;
-                        const idText = document.getElementById('stamp-badge-id').textContent;
-                        
-                        // Draw 2 lines on canvas
-                        ctx.font = `600 ${fontSize * 0.82}px 'Noto Sans Thai', sans-serif`;
-                        ctx.fillText(nameText, targetX + (boxWidth / 2), targetY + padding);
-                        ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
-                        ctx.fillText(idText, targetX + (boxWidth / 2), targetY + padding + fontSize + lineSpacing);
-                        
-                        resolve(canvas.toDataURL('image/png'));
-                    };
-                    img.src = state.originalUploadedSlipBase64;
-                });
+            try {
+                // Validate inputs
+                const payAmount = getFinalPayAmount();
+                const remaining = state.currentStudent.totalTuition - state.currentStudent.paidAmount;
                 
-                state.uploadedSlipBase64 = stampedSlip;
+                if (payAmount <= 0) {
+                    alert("❌ กรุณาระบุจำนวนเงินที่ต้องการชำระ");
+                    const inputEl = document.getElementById('input-pay-amount');
+                    inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    inputEl.focus();
+                    document.getElementById('custom-amount-error').style.display = 'block';
+                    return;
+                }
+                
+                if (payAmount > remaining) {
+                    alert(`❌ จำนวนเงินที่ระบุ (${payAmount.toLocaleString()} บาท) เกินกว่ายอดที่ค้างชำระ (${remaining.toLocaleString()} บาท)`);
+                    const inputEl = document.getElementById('input-pay-amount');
+                    inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    inputEl.focus();
+                    document.getElementById('custom-amount-error').style.display = 'block';
+                    return;
+                }
+                
+                if (!state.uploadedSlipBase64) {
+                    alert("❌ กรุณาแนบไฟล์ภาพสลิปชำระเงินก่อนส่งข้อมูล");
+                    const dropzoneEl = document.getElementById('slip-dropzone');
+                    dropzoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('slip-error').style.display = 'block';
+                    return;
+                }
+
+                // If uploader stamp badge is visible, burn/stamp it into the raw clean uploaded image copy strictly at the top-right corner!
+                const badge = document.getElementById('slip-interactive-badge');
+                
+                if (badge && badge.style.display !== 'none' && state.originalUploadedSlipBase64) {
+                    // Show custom visual indicator during render
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังประมวลผลรูปภาพ...';
+
+                    // Canvas high-resolution stamping block
+                    const stampedSlip = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.naturalWidth;
+                                canvas.height = img.naturalHeight;
+                                const ctx = canvas.getContext('2d');
+                                
+                                // Draw raw base image
+                                ctx.drawImage(img, 0, 0);
+                                
+                                const width = canvas.width;
+                                const height = canvas.height;
+                                const scale = width / 600;
+                                
+                                const fontSize = Math.max(23 * scale, 19);
+                                const padding = 18 * scale;
+                                const lineSpacing = 8 * scale;
+                                
+                                // Calculate sizes
+                                const boxWidth = 370 * scale;
+                                const boxHeight = (fontSize * 2) + lineSpacing + (padding * 2.2);
+                                
+                                // Target coordinates fixed strictly at top-right corner (margin 2.5% of width)
+                                const gap = 0.025 * width;
+                                const targetX = width - boxWidth - gap;
+                                const targetY = gap;
+                                
+                                // Soft premium drop shadow
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+                                ctx.shadowBlur = 12 * scale;
+                                ctx.shadowOffsetX = 0;
+                                ctx.shadowOffsetY = 4 * scale;
+                                
+                                // Draw white rounded rect
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                                const r = 12 * scale;
+                                ctx.beginPath();
+                                ctx.moveTo(targetX + r, targetY);
+                                ctx.lineTo(targetX + boxWidth - r, targetY);
+                                ctx.quadraticCurveTo(targetX + boxWidth, targetY, targetX + boxWidth, targetY + r);
+                                ctx.lineTo(targetX + boxWidth, targetY + boxHeight - r);
+                                ctx.quadraticCurveTo(targetX + boxWidth, targetY + boxHeight, targetX + boxWidth - r, targetY + boxHeight);
+                                ctx.lineTo(targetX + r, targetY + boxHeight);
+                                ctx.quadraticCurveTo(targetX, targetY + boxHeight, targetX, targetY + boxHeight - r);
+                                ctx.lineTo(targetX, targetY + r);
+                                ctx.quadraticCurveTo(targetX, targetY, targetX + r, targetY);
+                                ctx.closePath();
+                                ctx.fill();
+                                
+                                // Reset shadow
+                                ctx.shadowColor = 'transparent';
+                                ctx.shadowBlur = 0;
+                                ctx.shadowOffsetX = 0;
+                                ctx.shadowOffsetY = 0;
+                                
+                                // Blue border stroke
+                                ctx.strokeStyle = 'rgba(0, 102, 204, 0.25)';
+                                ctx.lineWidth = 2 * scale;
+                                ctx.stroke();
+                                
+                                // Slate text details
+                                ctx.fillStyle = '#1d1d1f';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'top';
+                                
+                                const nameText = document.getElementById('stamp-badge-name').textContent;
+                                const idText = document.getElementById('stamp-badge-id').textContent;
+                                
+                                // Draw 2 lines on canvas
+                                ctx.font = `600 ${fontSize * 0.82}px 'Noto Sans Thai', sans-serif`;
+                                ctx.fillText(nameText, targetX + (boxWidth / 2), targetY + padding);
+                                ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
+                                ctx.fillText(idText, targetX + (boxWidth / 2), targetY + padding + fontSize + lineSpacing);
+                                
+                                resolve(canvas.toDataURL('image/png'));
+                            } catch (canvasErr) {
+                                reject(canvasErr);
+                            }
+                        };
+                        img.onerror = (err) => {
+                            reject(new Error("ไม่สามารถโหลดและประมวลผลรูปภาพสลิปได้"));
+                        };
+                        img.src = state.originalUploadedSlipBase64;
+                    });
+                    
+                    state.uploadedSlipBase64 = stampedSlip;
+                }
+
+                // Valid payment, submit
+                const payment = {
+                    studentId: state.currentStudent.id,
+                    amount: payAmount,
+                    dateTime: new Date().toISOString().slice(0, 19),
+                    slipImage: state.uploadedSlipBase64,
+                    slipName: state.uploadedSlipName,
+                    status: 'pending',
+                    refNo: `TXN-${state.currentStudent.id}-${Math.floor(Date.now() / 100000)}`,
+                    verificationDate: null,
+                    comment: ''
+                };
+
+                // 1. Save payment record
+                await window.tuitionStore.addPayment(payment);
+                
+                // 2. Set student status to pending
+                const student = await window.tuitionStore.getStudentById(state.currentStudent.id);
+                student.status = 'pending';
+                await window.tuitionStore.updateStudent(student);
+                
+                // 3. Clear form
+                resetPaymentForm();
+                
+                // 5. Success Modal pop up
+                const successModal = document.getElementById('modal-success-checkmark');
+                const lottiePlayer = document.getElementById('lottie-success-player');
+                if (successModal) {
+                    if (lottiePlayer) {
+                        if (typeof lottiePlayer.load === 'function' && typeof LOTTIE_SUCCESS_JSON !== 'undefined') {
+                            try {
+                                lottiePlayer.load(LOTTIE_SUCCESS_JSON);
+                            } catch (e) {
+                                console.error("Error loading Lottie JSON on display:", e);
+                            }
+                        }
+                        if (typeof lottiePlayer.seek === 'function') {
+                            lottiePlayer.seek(0);
+                        }
+                        if (typeof lottiePlayer.play === 'function') {
+                            lottiePlayer.play();
+                        }
+                    }
+                    successModal.style.display = 'flex';
+                    setTimeout(() => {
+                        successModal.classList.add('active');
+                    }, 10);
+                    
+                    let dismissed = false;
+                    const dismissModal = () => {
+                        if (dismissed) return;
+                        dismissed = true;
+                        successModal.classList.remove('active');
+                        setTimeout(() => {
+                            successModal.style.display = 'none';
+                            if (lottiePlayer && typeof lottiePlayer.stop === 'function') {
+                                lottiePlayer.stop();
+                            }
+                        }, 300);
+                    };
+
+                    const autoDismissTimeout = setTimeout(dismissModal, 2200);
+
+                    successModal.onclick = () => {
+                        clearTimeout(autoDismissTimeout);
+                        dismissModal();
+                    };
+                }
+                
+                // 6. Sync and refresh view across tabs and current tab
+                await notifyDbUpdate('payments', state.currentStudent.id);
+                
+                alert("🎉 ส่งหลักฐานการชำระเงินเรียบร้อยแล้ว! กรุณารอเจ้าหน้าที่ตรวจสอบสลิป");
+            } catch (err) {
+                console.error("Payment submission error:", err);
+                alert(`❌ เกิดข้อผิดพลาดในการส่งสลิป: ${err.message || err.description || JSON.stringify(err)}`);
+            } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = origHtml;
             }
-
-            // Valid payment, submit
-            const payment = {
-                studentId: state.currentStudent.id,
-                amount: payAmount,
-                dateTime: new Date().toISOString().slice(0, 19),
-                slipImage: state.uploadedSlipBase64,
-                slipName: state.uploadedSlipName,
-                status: 'pending',
-                refNo: `TXN-${state.currentStudent.id}-${Math.floor(Date.now() / 100000)}`,
-                verificationDate: '',
-                comment: ''
-            };
-
-            // 1. Save payment record
-            await window.tuitionStore.addPayment(payment);
-            
-            // 2. Set student status to pending
-            const student = await window.tuitionStore.getStudentById(state.currentStudent.id);
-            student.status = 'pending';
-            await window.tuitionStore.updateStudent(student);
-            
-            // 3. Clear form
-            resetPaymentForm();
-            
-            // 5. Success Modal pop up
-            const successModal = document.getElementById('modal-success-checkmark');
-            const lottiePlayer = document.getElementById('lottie-success-player');
-            if (successModal) {
-                if (lottiePlayer) {
-                    if (typeof lottiePlayer.load === 'function' && typeof LOTTIE_SUCCESS_JSON !== 'undefined') {
-                        try {
-                            lottiePlayer.load(LOTTIE_SUCCESS_JSON);
-                        } catch (e) {
-                            console.error("Error loading Lottie JSON on display:", e);
-                        }
-                    }
-                    if (typeof lottiePlayer.seek === 'function') {
-                        lottiePlayer.seek(0);
-                    }
-                    if (typeof lottiePlayer.play === 'function') {
-                        lottiePlayer.play();
-                    }
-                }
-                successModal.style.display = 'flex';
-                setTimeout(() => {
-                    successModal.classList.add('active');
-                }, 10);
-                
-                let dismissed = false;
-                const dismissModal = () => {
-                    if (dismissed) return;
-                    dismissed = true;
-                    successModal.classList.remove('active');
-                    setTimeout(() => {
-                        successModal.style.display = 'none';
-                        if (lottiePlayer && typeof lottiePlayer.stop === 'function') {
-                            lottiePlayer.stop();
-                        }
-                    }, 300);
-                };
-
-                const autoDismissTimeout = setTimeout(dismissModal, 2200);
-
-                successModal.onclick = () => {
-                    clearTimeout(autoDismissTimeout);
-                    dismissModal();
-                };
-            }
-            
-            // 6. Sync and refresh view across tabs and current tab
-            await notifyDbUpdate('payments', state.currentStudent.id);
         });
 
         // =========================================================================
@@ -1149,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const badge = document.getElementById('slip-interactive-badge');
                 if (badge) {
                     const last4 = state.currentStudent.id.replace(/\D/g, '').slice(-4) || state.currentStudent.id.slice(-4);
-                    let genText = state.currentStudent.generation || '-';
+                    let genText = state.currentStudent.year || '-';
                     if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
                     document.getElementById('stamp-badge-name').textContent = `${genText} รหัส ${last4} ห้อง ${state.currentStudent.room || '-'}`;
                     document.getElementById('stamp-badge-id').textContent = state.currentStudent.name;
@@ -1405,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const student = {
                 id: document.getElementById('add-student-id').value.trim().toUpperCase(),
                 name: document.getElementById('add-student-name').value.trim(),
-                generation: document.getElementById('add-student-generation').value.trim(),
+                year: document.getElementById('add-student-generation').value.trim(),
                 room: document.getElementById('add-student-room').value.trim(),
                 totalTuition: parseFloat(document.getElementById('add-student-tuition').value) || 60000,
                 paidAmount: 0,
@@ -1413,21 +1453,26 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // Check if student id duplicate
-            const exist = await window.tuitionStore.getStudentById(student.id);
-            if (exist) {
-                alert(`❌ รหัสนักเรียน ${student.id} มีในฐานข้อมูลอยู่แล้ว!`);
-                return;
-            }
+            try {
+                const exist = await window.tuitionStore.getStudentById(student.id);
+                if (exist) {
+                    alert(`❌ รหัสนักเรียน ${student.id} มีในฐานข้อมูลอยู่แล้ว!`);
+                    return;
+                }
 
-            await window.tuitionStore.addStudent(student);
-            
-            // Success
-            alert(`🎉 เพิ่มข้อมูลนักเรียน ${student.name} สำเร็จ!`);
-            document.getElementById('form-admin-add-student').reset();
-            document.getElementById('modal-add-student').classList.remove('active');
-            
-            // Refresh and sync across tabs and current tab
-            await notifyDbUpdate('students', student.id);
+                await window.tuitionStore.addStudent(student);
+                
+                // Success
+                alert(`🎉 เพิ่มข้อมูลนักเรียน ${student.name} สำเร็จ!`);
+                document.getElementById('form-admin-add-student').reset();
+                document.getElementById('modal-add-student').classList.remove('active');
+                
+                // Refresh and sync across tabs and current tab
+                await notifyDbUpdate('students', student.id);
+            } catch (err) {
+                console.error("Error adding student:", err);
+                alert(`❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${err.message || err.description || JSON.stringify(err)}`);
+            }
         });
 
         // Edit Student trigger modals
@@ -1466,43 +1511,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const oldId = document.getElementById('edit-student-old-id').value.trim();
             const newId = document.getElementById('edit-student-id').value.trim().toUpperCase();
-            const student = await window.tuitionStore.getStudentById(oldId);
             
-            if (!student) return;
+            try {
+                const student = await window.tuitionStore.getStudentById(oldId);
+                if (!student) return;
 
-            // Check if changing ID to an existing one
-            if (oldId !== newId) {
-                const exist = await window.tuitionStore.getStudentById(newId);
-                if (exist) {
-                    alert(`❌ รหัสนักเรียน ${newId} มีในฐานข้อมูลอยู่แล้ว!`);
-                    return;
+                // Check if changing ID to an existing one
+                if (oldId !== newId) {
+                    const exist = await window.tuitionStore.getStudentById(newId);
+                    if (exist) {
+                        alert(`❌ รหัสนักเรียน ${newId} มีในฐานข้อมูลอยู่แล้ว!`);
+                        return;
+                    }
                 }
-            }
 
-            student.generation = document.getElementById('edit-student-generation').value.trim();
-            student.id = newId;
-            student.room = document.getElementById('edit-student-room').value.trim();
-            student.name = document.getElementById('edit-student-name').value.trim();
-
-            if (oldId !== newId) {
-                await window.tuitionStore.deleteStudent(oldId);
-                await window.tuitionStore.addStudent(student);
+                // Delete generation property if it exists to prevent database error
+                delete student.generation;
                 
-                // Update all payments to point to new ID
-                const payments = await window.tuitionStore.getPaymentsByStudentId(oldId);
-                for (const p of payments) {
-                    p.studentId = newId;
-                    await window.tuitionStore.updatePayment(p);
+                student.year = document.getElementById('edit-student-generation').value.trim();
+                student.id = newId;
+                student.room = document.getElementById('edit-student-room').value.trim();
+                student.name = document.getElementById('edit-student-name').value.trim();
+
+                if (oldId !== newId) {
+                    await window.tuitionStore.deleteStudent(oldId);
+                    await window.tuitionStore.addStudent(student);
+                    
+                    // Update all payments to point to new ID
+                    const payments = await window.tuitionStore.getPaymentsByStudentId(oldId);
+                    for (const p of payments) {
+                        p.studentId = newId;
+                        await window.tuitionStore.updatePayment(p);
+                    }
+                } else {
+                    await window.tuitionStore.updateStudent(student);
                 }
-            } else {
-                await window.tuitionStore.updateStudent(student);
+                
+                alert(`✅ แก้ไขข้อมูลนักเรียน ${student.name} สำเร็จ!`);
+                document.getElementById('form-admin-edit-student').reset();
+                document.getElementById('modal-edit-student').classList.remove('active');
+                
+                await notifyDbUpdate('students', student.id);
+            } catch (err) {
+                console.error("Error editing student:", err);
+                alert(`❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลการแก้ไข: ${err.message || err.description || JSON.stringify(err)}`);
             }
-            
-            alert(`✅ แก้ไขข้อมูลนักเรียน ${student.name} สำเร็จ!`);
-            document.getElementById('form-admin-edit-student').reset();
-            document.getElementById('modal-edit-student').classList.remove('active');
-            
-            await notifyDbUpdate('students', student.id);
         });
 
         // Search Student input
@@ -1696,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td style="text-align: center; font-weight: 600;">${s.generation || '-'}</td>
+                <td style="text-align: center; font-weight: 600;">${s.year || '-'}</td>
                 <td style="text-align: center; font-family: monospace; font-weight: 700;">${s.id}</td>
                 <td style="text-align: center; font-weight: 500;">${s.room}</td>
                 <td style="text-align: center; font-weight: 700;">${s.name}</td>
@@ -1721,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const student = await window.tuitionStore.getStudentById(stdId);
                 if (student) {
                     document.getElementById('edit-student-old-id').value = student.id;
-                    document.getElementById('edit-student-generation').value = student.generation || '';
+                    document.getElementById('edit-student-generation').value = student.year || '';
                     document.getElementById('edit-student-id').value = student.id;
                     document.getElementById('edit-student-room').value = student.room || '';
                     document.getElementById('edit-student-name').value = student.name || '';

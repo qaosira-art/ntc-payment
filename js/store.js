@@ -10,6 +10,32 @@ class TuitionStore {
     constructor() {
         // Initialize Supabase client
         this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // In-memory cache to prevent redundant network calls
+        this._cache = {};
+        this._cacheTTL = 30000; // 30 seconds
+    }
+
+    // --- CACHE HELPERS ---
+    _getCached(key) {
+        const entry = this._cache[key];
+        if (entry && (Date.now() - entry.ts < this._cacheTTL)) {
+            return entry.data;
+        }
+        return null;
+    }
+
+    _setCache(key, data) {
+        this._cache[key] = { data, ts: Date.now() };
+    }
+
+    /** Invalidate specific cache key or all caches */
+    invalidateCache(key) {
+        if (key) {
+            delete this._cache[key];
+        } else {
+            this._cache = {};
+        }
     }
 
     /**
@@ -28,11 +54,16 @@ class TuitionStore {
     // --- STUDENT OPERATIONS ---
 
     async getStudents() {
+        const cached = this._getCached('students');
+        if (cached) return cached;
+
         const { data, error } = await this.supabase
             .from('students')
             .select('*');
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        this._setCache('students', result);
+        return result;
     }
 
     async getStudentById(id) {
@@ -55,6 +86,7 @@ class TuitionStore {
             .select()
             .single();
         if (error) throw error;
+        this.invalidateCache('students');
         return data;
     }
 
@@ -67,6 +99,7 @@ class TuitionStore {
             .select()
             .single();
         if (error) throw error;
+        this.invalidateCache('students');
         return data || student;
     }
 
@@ -76,27 +109,39 @@ class TuitionStore {
             .delete()
             .eq('id', id);
         if (error) throw error;
+        this.invalidateCache('students');
         return true;
     }
 
     // --- PAYMENT OPERATIONS ---
 
     async getPayments() {
+        const cached = this._getCached('payments');
+        if (cached) return cached;
+
         const { data, error } = await this.supabase
             .from('payments')
             .select('*');
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        this._setCache('payments', result);
+        return result;
     }
 
     async getPaymentsByStudentId(studentId) {
+        const cacheKey = `payments_${studentId}`;
+        const cached = this._getCached(cacheKey);
+        if (cached) return cached;
+
         const { data, error } = await this.supabase
             .from('payments')
             .select('*')
             .eq('studentId', studentId)
             .order('dateTime', { ascending: false });
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        this._setCache(cacheKey, result);
+        return result;
     }
 
     async addPayment(payment) {
@@ -108,6 +153,7 @@ class TuitionStore {
             .select()
             .single();
         if (error) throw error;
+        this.invalidateCache(); // Clear all payment-related caches
         return data;
     }
 
@@ -120,6 +166,7 @@ class TuitionStore {
             .select()
             .single();
         if (error) throw error;
+        this.invalidateCache(); // Clear all payment-related caches
         return data || payment;
     }
 
