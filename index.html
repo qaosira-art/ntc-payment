@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=800">
+    <title>ระบบชำระค่าธรรมเนียมการศึกษา - วิทยาลัยเทคโนโลยีนนทบุรี</title>
+    <link rel="stylesheet" href="css/style.css?v=2">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Lottie Player Script -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+    <!-- Beautiful Animated Background Blobs -->
+    <div class="bg-blur-blob blob-1"></div>
+    <div class="bg-blur-blob blob-2"></div>
+    <div class="bg-blur-blob blob-3"></div>
+
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <a href="#" class="logo-section" id="btn-logo-home">
+                <img src="assets/logo.png" alt="วิทยาลัยเทคโนโลยีนนทบุรี">
+                <span class="logo-text">วิทยาลัยเทคโนโลยีนนทบุรี</span>
+            </a>
+            
+            <nav class="nav-links">
+                <button class="nav-tab active" id="tab-student-portal" data-target="view-student-auth">
+                    <i class="fa-solid fa-user-gradient fa-user"></i> สำหรับนักเรียน
+                </button>
+                <button class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth">
+                    <i class="fa-solid fa-shield-halved"></i> สำหรับเจ้าหน้าที่ (Admin)
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- ============================================ -->
+        <!-- VIEW 1: STUDENT AUTH / SELECTION             -->
+        <!-- ============================================ -->
+        <section id="view-student-auth" class="view-section">
+            <div class="card-panel card-panel-glass text-center" style="max-width: 850px; margin: 40px auto 0; padding: 40px 32px;">
+                <h1 class="section-title" style="margin-bottom: 4px;">ระบบชำระค่าเล่าเรียน</h1>
+                <p class="section-subtitle" style="margin-bottom: 24px;">วิทยาลัยเทคโนโลยีนนทบุรี • ปีการศึกษา 2569</p>
+                
+                <div style="margin: 16px 0 8px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
+                        <span style="height: 1px; background: var(--neutral-border); flex: 1;"></span>
+                        <span style="font-size: 14px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">รายชื่อนักเรียนและสถานะการชำระเงินค่าธรรมเนียม (ค่าเทอมทั้งหมด 60,000 บ.)</span>
+                        <span style="height: 1px; background: var(--neutral-border); flex: 1;"></span>
+                    </div>
+                    
+                    <div id="mock-students-grid" style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+                        <!-- Seeded Student Profile cards rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================ -->
+        <!-- VIEW 2: STUDENT PORTAL DASHBOARD             -->
+        <!-- ============================================ -->
+        <section id="view-student-portal" class="view-section hidden">
+            <!-- Back to Login Button -->
+            <div style="margin-bottom: 24px;">
+                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-student-logout">
+                    <i class="fa-solid fa-arrow-left"></i> ย้อนกลับ
+                </button>
+            </div>
+
+            <div style="max-width: 640px; margin: 0 auto;">
+                <!-- All content centered -->
+                <div>
+                    <!-- Student Hero Info Header (inside left column) -->
+                    <div class="student-hero-banner">
+                        <div class="student-hero-profile">
+                            <div class="student-hero-avatar">
+                                <label for="avatar-upload" style="cursor: pointer; width: 100%; height: 100%; position: relative; display: block;">
+                                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0" alt="Student Profile" id="student-display-avatar">
+                                    <div class="avatar-overlay">
+                                        <i class="fa-solid fa-camera"></i>
+                                    </div>
+                                </label>
+                                <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="student-hero-info">
+                                <h2 id="student-display-name">สมหญิง รักเรียน</h2>
+                                <p id="student-display-meta">รหัส: STD002 • ชั้นปีที่ 1 ห้อง 2</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="status-badge" id="student-status-badge" style="box-shadow: 0 8px 20px rgba(0,0,0,0.15);">ชำระแล้วบางส่วน</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Status Ledger -->
+                    <div class="card-panel">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-receipt" style="color: var(--primary);"></i> สรุปบัญชีค่าเล่าเรียน
+                        </h3>
+                        
+                        <div class="ledger-container">
+                            <div class="progress-ring-wrapper">
+                                <svg width="140" height="140">
+                                    <circle class="progress-ring-circle" stroke="#e5e5ea" stroke-width="12" fill="transparent" r="54" cx="70" cy="70"/>
+                                    <circle class="progress-ring-circle" id="ledger-progress-circle" stroke="var(--primary)" stroke-width="12" fill="transparent" r="54" cx="70" cy="70" stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+                                </svg>
+                                <div class="progress-ring-text">
+                                    <div class="progress-ring-val" id="ledger-percentage-val">0%</div>
+                                    <div class="progress-ring-lbl">ชำระแล้ว</div>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: 13px; color: #86868b; font-weight: 600;">ค่าเล่าเรียนทั้งหมด</span>
+                                    <span style="font-size: 15px; font-weight: 700;" id="ledger-total-fee">60,000 THB</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: 13px; color: var(--success-text); font-weight: 600;">ชำระแล้ว</span>
+                                    <span style="font-size: 15px; font-weight: 700; color: var(--success);" id="ledger-paid-fee">20,000 THB</span>
+                                </div>
+                                <div style="border-top: 1px solid var(--neutral-border); padding-top: 8px; display: flex; justify-content: space-between;">
+                                    <span style="font-size: 14px; font-weight: 700;">ยอดค้างชำระ</span>
+                                    <span style="font-size: 16px; font-weight: 800; color: var(--danger);" id="ledger-remaining-fee">40,000 THB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Timeline / Receipt History (Moved to Left Panel) -->
+                    <div class="card-panel">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> ประวัติรายการชำระเงิน
+                        </h3>
+                        
+                        <div id="payment-timeline-container" class="timeline" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Payment nodes rendered here dynamically -->
+                        </div>
+                        
+                        <div class="text-center" id="timeline-empty-state" style="padding: 60px 0; color: #86868b; display: none;">
+                            <i class="fa-regular fa-folder-open" style="font-size: 36px; margin-bottom: 12px; opacity: 0.6;"></i>
+                            <p style="font-size: 13px; font-weight: 500;">ยังไม่มีรายการประวัติการชำระเงิน</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Action Section -->
+                    <div class="card-panel" id="payment-action-panel">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-wallet" style="color: var(--primary);"></i> ชำระเงินค่าธรรมเนียม
+                        </h3>
+                        
+                        <form id="form-tuition-payment">
+                            <!-- Custom Amount Input (Always Visible) -->
+                            <div class="form-field" id="custom-amount-field">
+                                <label for="input-pay-amount" id="lbl-pay-amount">ระบุจำนวนเงินที่ต้องการชำระ (บาท)</label>
+                                <div style="position: relative;">
+                                    <input type="number" id="input-pay-amount" placeholder="ระบุยอดเงินโอน" min="100" style="font-weight: 700; font-size: 18px; padding-left: 20px; color: var(--primary);">
+                                    <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-weight: 700; color: #86868b;">THB</span>
+                                </div>
+                                <p id="custom-amount-error" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-top: 6px; display: none;">กรุณากรอกจำนวนเงินไม่เกินยอดค้างชำระ</p>
+                            </div>
+
+                            <!-- Bank Transfer (Krungthai Bank KTB) -->
+                            <div id="payment-content-bank" class="payment-content-section" style="margin-top: 12px;">
+                                <div class="checkout-card">
+                                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; background: white; padding: 14px; border-radius: var(--radius-sm); border: 1px solid rgba(0,0,0,0.04);">
+                                        <div style="background: #00a2e5; color: white; width: 44px; height: 44px; border-radius: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">KTB</div>
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark);">ธนาคารกรุงไทย (KTB)</div>
+                                            <div style="font-size: 15px; font-weight: 700; color: #0080c0; display: flex; align-items: center; gap: 6px;">
+                                                <span id="txt-bank-acc">040-0-03605-3</span>
+                                                <button type="button" class="btn-copy" id="btn-copy-acc" style="background: none; border: none; color: #86868b; cursor: pointer; font-size: 12px;" title="คัดลอกเลขบัญชี">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </button>
+                                            </div>
+                                            <div style="font-size: 12px; color: #86868b; font-weight: 500; margin-top: 2px;">ชื่อบัญชี: วิทยาลัยเทคโนโลยียานยนต์</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Deep Link Action Button -->
+                                    <div style="margin: 20px 0 10px; text-align: center;">
+                                        <button type="button" class="btn-modern btn-modern-primary w-100" id="btn-open-banking-app" style="height: 52px; font-size: 16px; box-shadow: var(--shadow-md); border-radius: 26px;">
+                                            <i class="fa-solid fa-mobile-screen-button"></i> เปิดแอปธนาคารเพื่อชำระเงิน
+                                        </button>
+                                        <p style="font-size: 11px; color: #86868b; font-weight: 500; margin-top: 10px; line-height: 1.4;">
+                                            *ระบบจะคัดลอกเลขบัญชีและยอดเงินให้อัตโนมัติก่อนเปิดแอปธนาคารบนมือถือ
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Slip Drag and Drop -->
+                            <div class="form-field">
+                                <label>แนบหลักฐานการโอนเงิน (สลิปชำระเงิน)</label>
+                                <div class="drag-drop-zone" id="slip-dropzone">
+                                    <input type="file" id="input-slip-file" accept="image/png, image/jpeg, image/jpg" style="display: none;">
+                                    
+                                    <div class="uploader-icon">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <div class="uploader-label">ลากไฟล์สลิปมาวางที่นี่ หรือคลิกเพื่ออัปโหลด</div>
+                                    <div class="uploader-sublabel">รองรับไฟล์ภาพ JPEG, JPG, PNG (ระบบจะบันทึกเป็นไฟล์ภาพ PNG อัตโนมัติ)</div>
+                                </div>
+                                
+                                <div class="slip-preview-container" id="slip-preview-container" style="display: none; position: relative; user-select: none; border-radius: var(--radius); overflow: hidden; background: #f5f5f7; container-type: inline-size;">
+                                     <img src="" alt="Slip Preview" class="slip-preview-img" id="slip-preview-img" style="width: 100%; display: block; height: auto;">
+                                     
+                                     <!-- Static Stamp Badge Overlay (fixed strictly at top-right corner with 3 sizes larger text!) -->
+                                     <div id="slip-interactive-badge" style="position: absolute; top: 2.5cqw; right: 2.5cqw; background: rgba(255, 255, 255, 0.96); border: clamp(1px, 0.25cqw, 2px) solid rgba(0, 102, 204, 0.25); border-radius: clamp(6px, 2cqw, 12px); padding: clamp(10px, 3.2cqw, 18px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); text-align: center; z-index: 10; font-family: 'Noto Sans Thai', sans-serif; pointer-events: none; width: 65cqw; max-width: 370px; transition: border-color 0.2s ease;">
+                                         <div style="font-weight: 700; font-size: clamp(12px, 3.5cqw, 18px); color: #555; line-height: 1.4; white-space: nowrap;" id="stamp-badge-name">รุ่น 21 รหัส 0000 ห้อง 1/1</div>
+                                         <div style="font-weight: 800; font-size: clamp(14px, 4.2cqw, 22px); color: #1d1d1f; line-height: 1.35; margin-top: clamp(2px, 0.6cqw, 4px);" id="stamp-badge-id">ชื่อ - นามสกุล</div>
+                                         <div style="display:none;" id="stamp-badge-room"></div>
+                                     </div>
+                                    
+
+                                    <button type="button" class="slip-remove-btn" id="btn-remove-slip" title="ลบภาพหลักฐาน">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    
+                                    <div id="stamp-button-container" style="margin-top: 12px; text-align: center; padding: 0 16px 12px;">
+                                        <button type="button" class="btn-modern btn-modern-secondary btn-modern-sm w-100" id="btn-open-stamp-modal" style="border-color: var(--accent); color: var(--accent); background: rgba(0, 113, 227, 0.04); font-weight: 700; height: 42px; font-size: 13px;">
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูลพิมพ์ทับสลิป
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <p id="slip-error" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-top: 6px; display: none;">กรุณาแนบไฟล์สลิปเพื่อทำรายการ</p>
+                            </div>
+
+
+
+                            <!-- Submit button -->
+                            <div style="text-align: center;">
+                                <button type="submit" class="btn-modern btn-modern-primary" id="btn-submit-payment" style="height: 52px; font-size: 16px; padding: 0 40px;">
+                                    ส่งสลิป <i class="fa-solid fa-paper-plane" style="margin-left: 6px;"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- fully paid notification -->
+                    <div class="card-panel text-center" id="fully-paid-success-card" style="display: none; background: linear-gradient(135deg, #e3fbed 0%, #d1f8e2 100%); border-color: rgba(52, 199, 89, 0.2);">
+                        <div style="width: 72px; height: 72px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(52,199,89,0.3);">
+                            🎉
+                        </div>
+                        <h3 style="font-size: 22px; font-weight: 700; color: var(--success-text); margin-bottom: 8px;">ชำระค่าเล่าเรียนครบถ้วนแล้ว</h3>
+                        <p style="font-size: 14px; color: #1e7e46; font-weight: 500;">คุณได้ชำระเงินค่าเทอมทั้งหมด 60,000 บาท เสร็จสิ้นเรียบร้อยแล้ว ขอบคุณค่ะ</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================ -->
+        <!-- VIEW 3: ADMIN LOGIN                          -->
+        <!-- ============================================ -->
+        <section id="view-admin-auth" class="view-section hidden">
+            <div class="card-panel card-panel-glass text-center" style="max-width: 440px; margin: 60px auto 0;">
+                <div style="width: 56px; height: 56px; background: rgba(0, 102, 204, 0.08); border-radius: 50%; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 20px;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f;">เข้าสู่ระบบ Admin</h2>
+                <p style="font-size: 14px; color: #86868b; margin-bottom: 28px;">กรุณากรอกข้อมูลเพื่อเข้าใช้งาน</p>
+                
+                <form id="form-admin-login">
+                    <div class="form-field" style="margin-bottom: 24px;">
+                        <label for="input-admin-password" style="text-align: left; font-weight: 700; color: #1d1d1f; margin-bottom: 8px;">รหัสผ่าน</label>
+                        <input type="password" id="input-admin-password" placeholder="กรุณากรอกรหัสผ่าน" style="text-align: left;">
+                    </div>
+                    <p id="admin-login-error" style="color: var(--danger); font-size: 13px; font-weight: 600; margin-bottom: 16px; display: none;">รหัสผ่านไม่ถูกต้อง</p>
+                    
+                    <button type="submit" class="btn-modern btn-modern-primary w-100" style="height: 48px; border-radius: 8px;">
+                        เข้าสู่ระบบ
+                    </button>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- ============================================ -->
+        <!-- VIEW 4: ADMIN PORTAL DASHBOARD               -->
+        <!-- ============================================ -->
+        <section id="view-admin-portal" class="view-section hidden">
+            <!-- Admin Segmented Tab Control & Logout -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-top: 16px;">
+                <div style="width: 180px;"></div> <!-- Spacer for layout balance -->
+                
+                <div class="nav-links" style="background: rgba(0, 0, 0, 0.05); padding: 4px; border-radius: var(--radius-sm);">
+                    <button class="nav-tab active" id="btn-admin-tab-vault" data-target="admin-tab-vault">
+                        <i class="fa-solid fa-folder-open"></i> รายการตรวจสลิปเงินโอน
+                    </button>
+                    <button class="nav-tab" id="btn-admin-tab-students" data-target="admin-tab-students">
+                        <i class="fa-solid fa-user-gear"></i> การจัดการรายชื่อนักเรียน
+                    </button>
+                </div>
+                
+                <div style="width: 180px; text-align: right;">
+                    <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-admin-logout">
+                        ออกจากระบบ <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: SLIP VAULT (ตรวจสลิป) -->
+            <div id="admin-tab-vault" class="admin-tab-content">
+                <div class="card-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                        <h3 style="font-size: 18px; font-weight: 700;">
+                            <i class="fa-solid fa-clipboard-check" style="color: var(--primary);"></i> ตรวจสอบหลักฐานการโอนเงิน
+                        </h3>
+                        <div style="display: flex; gap: 12px;">
+                            <select id="select-filter-vault-status" class="form-field" style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; margin-bottom: 0; min-width: 140px; background: white;">
+                                <option value="all">สถานะ: ทั้งหมด</option>
+                                <option value="pending" selected>เฉพาะรอดำเนินการ</option>
+                                <option value="approved">อนุมัติแล้ว</option>
+                                <option value="rejected">ปฏิเสธสลิปแล้ว</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="premium-table-container">
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th>นักเรียน</th>
+                                    <th>ยอดโอนแจ้ง</th>
+                                    <th>วันที่ส่ง</th>
+                                    <th>สลิปไฟล์ (.png)</th>
+                                    <th>สถานะ</th>
+                                    <th style="text-align: center;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-vault-table-body">
+                                <!-- Dynamic transactions data loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center" id="vault-empty-state" style="padding: 80px 0; color: #86868b; display: none;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 48px; color: var(--success); margin-bottom: 16px; opacity: 0.8;"></i>
+                        <p style="font-size: 15px; font-weight: 600; color: var(--neutral-dark);">ไม่มีรายการสลิปค้างตรวจสอบ</p>
+                        <p style="font-size: 12px; color: #86868b; margin-top: 4px;">ระบบได้รับการอนุมัติเอกสารครบถ้วนเรียบร้อยแล้ว</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: STUDENT MANAGEMENT (จัดการนักเรียน) -->
+            <div id="admin-tab-students" class="admin-tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                        <h3 style="font-size: 18px; font-weight: 700;">
+                            <i class="fa-solid fa-address-book" style="color: var(--primary);"></i> รายชื่อและฐานข้อมูลนักเรียน
+                        </h3>
+                        <button class="btn-modern btn-modern-primary btn-modern-sm" id="btn-admin-add-student-trigger">
+                            <i class="fa-solid fa-plus"></i> เพิ่มนักเรียนใหม่
+                        </button>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="form-field" style="margin-bottom: 20px;">
+                        <div style="position: relative;">
+                            <input type="text" id="input-search-student" placeholder="ค้นหาด้วยรหัส รหัสห้องเรียน หรือชื่อนักเรียน..." style="padding-left: 42px; background: var(--neutral-light); border-radius: var(--radius-sm);">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #86868b;"></i>
+                        </div>
+                    </div>
+
+                    <div class="premium-table-container">
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center;">รุ่น</th>
+                                    <th style="text-align: center;">รหัสนักเรียน</th>
+                                    <th style="text-align: center;">ห้อง</th>
+                                    <th style="text-align: center;">ชื่อ - นามสกุล</th>
+                                    <th style="text-align: center;">ชำระแล้ว</th>
+                                    <th style="text-align: center;">ยอดค้างชำระ</th>
+                                    <th style="text-align: center;">การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-students-table-body">
+                                <!-- Student rows rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+    <!-- ============================================ -->
+    <!-- SLIDE-IN SIDE PANEL: SLIP INSPECTION        -->
+    <!-- ============================================ -->
+    <div class="slip-inspector-panel" id="slip-inspector">
+        <div class="inspector-header">
+            <div>
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--neutral-dark);" id="inspector-student-name">ตรวจสอบสลิป</h3>
+                <p style="font-size: 12px; color: #86868b; font-weight: 500;" id="inspector-payment-meta">TXN ID: #1002 • นักเรียน: สมหญิง รักเรียน</p>
+            </div>
+            <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-inspector" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="inspector-body">
+            <!-- Slip image box viewport -->
+            <div class="slip-viewer-viewport" id="slip-viewer-viewport">
+                <img src="" alt="PNG E-Slip Document" class="slip-viewer-img" id="inspector-slip-img">
+                
+                <!-- Zoom / Rotate Overlay Tool controls -->
+                <div class="viewer-controls">
+                    <button class="viewer-btn" id="btn-zoom-in" title="ซูมเข้า"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <button class="viewer-btn" id="btn-zoom-out" title="ซูมออก"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    <button class="viewer-btn" id="btn-rotate" title="หมุนภาพ"><i class="fa-solid fa-rotate"></i></button>
+                    <button class="viewer-btn" id="btn-viewer-reset" title="คืนค่าเดิม"><i class="fa-solid fa-expand"></i></button>
+                    <button class="viewer-btn" id="btn-viewer-download" title="ดาวน์โหลดไฟล์สลิปเป็น PNG"><i class="fa-solid fa-download"></i></button>
+                </div>
+            </div>
+
+            <!-- Slip details verification grid -->
+            <div style="background: var(--neutral-light); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color:#6e6e73; font-weight:600;">ยอดเงินแจ้งชำระ:</span>
+                    <span style="font-weight: 700; color: var(--primary); font-size: 14px;" id="inspector-detail-amount">20,000 บาท</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color:#6e6e73; font-weight:600;">วันเวลาทำรายการ:</span>
+                    <span style="font-weight: 600;" id="inspector-detail-datetime">12/05/2026 14:15 น.</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color:#6e6e73; font-weight:600;">ชนิดนามสกุลไฟล์หลักฐาน:</span>
+                    <span style="font-weight: 700; color: #10b981;" id="inspector-detail-extension">PNG Image (.png)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color:#6e6e73; font-weight:600;">ชื่อไฟล์ที่เก็บในเซิร์ฟเวอร์:</span>
+                    <span style="font-family: monospace; font-size: 11px; font-weight: 600;" id="inspector-detail-filename">slip_STD002_1715523300.png</span>
+                </div>
+            </div>
+
+            <!-- Rejection comment field -->
+            <div class="form-field" id="rejection-reason-container" style="display: none; animation: slideUp 0.3s ease;">
+                <label for="input-rejection-comment" style="color: var(--danger-text);">เหตุผลที่ปฏิเสธสลิปการชำระเงิน</label>
+                <textarea id="input-rejection-comment" rows="3" placeholder="ระบุเหตุผล เช่น ยอดโอนไม่ครบถ้วน, สลิปซ้ำ หรือ ภาพเบลอมองไม่เห็นรายละเอียด..."></textarea>
+            </div>
+        </div>
+
+        <div class="inspector-footer" id="inspector-actions-group">
+            <button class="btn-modern btn-modern-danger w-100" id="btn-admin-reject-slip" style="flex: 1; height: 46px;">
+                ปฏิเสธสลิป
+            </button>
+            <button class="btn-modern btn-modern-primary w-100" id="btn-admin-approve-slip" style="flex: 2; height: 46px; background-color: var(--success);">
+                อนุมัติชำระเงิน <i class="fa-solid fa-check"></i>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ============================================ -->
+    <!-- MODAL: ADD STUDENT (ADMIN VIEW)             -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-add-student">
+        <div class="premium-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 19px; font-weight: 700; color: var(--neutral-dark);">เพิ่มนักเรียนใหม่เข้าระบบ</h3>
+                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-add-student-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="form-admin-add-student">
+                <div class="form-field">
+                    <label for="add-student-generation">รุ่น</label>
+                    <input type="text" id="add-student-generation" placeholder="ตัวอย่าง: รุ่น21" required>
+                </div>
+                <div class="form-field">
+                    <label for="add-student-id">รหัสนักเรียน</label>
+                    <input type="text" id="add-student-id" placeholder="ตัวอย่าง: STD006" required style="text-transform: uppercase;">
+                </div>
+                <div class="form-field">
+                    <label for="add-student-room">ห้อง (เช่น 1/1, 2/3)</label>
+                    <input type="text" id="add-student-room" placeholder="เช่น 1/1" required>
+                </div>
+                <div class="form-field">
+                    <label for="add-student-name">ชื่อ - นามสกุล</label>
+                    <input type="text" id="add-student-name" placeholder="ชื่อสกุลนักเรียน" required>
+                </div>
+
+                <div class="form-field" style="margin-bottom: 24px;">
+                    <label for="add-student-tuition">ค่าเล่าเรียนหลักยอดรวมทั้งหมด (บาท)</label>
+                    <input type="number" id="add-student-tuition" value="60000" min="100" required style="font-weight: 700; color: var(--primary);">
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" class="btn-modern btn-modern-secondary w-100" id="btn-cancel-add-student">ยกเลิก</button>
+                    <button type="submit" class="btn-modern btn-modern-primary w-100">บันทึกรายชื่อ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL: EDIT STUDENT (ADMIN VIEW)             -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-edit-student">
+        <div class="premium-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 19px; font-weight: 700; color: var(--neutral-dark);">แก้ไขข้อมูลนักเรียน</h3>
+                <button type="button" class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-edit-student-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="form-admin-edit-student">
+                <input type="hidden" id="edit-student-old-id">
+                <div class="form-field">
+                    <label for="edit-student-generation">รุ่น</label>
+                    <input type="text" id="edit-student-generation" placeholder="ตัวอย่าง: รุ่น21" required>
+                </div>
+                <div class="form-field">
+                    <label for="edit-student-id">รหัสนักเรียน</label>
+                    <input type="text" id="edit-student-id" placeholder="ตัวอย่าง: STD006" required style="text-transform: uppercase;">
+                </div>
+                <div class="form-field">
+                    <label for="edit-student-room">ห้อง (เช่น 1/1, 2/3)</label>
+                    <input type="text" id="edit-student-room" placeholder="เช่น 1/1" required>
+                </div>
+                <div class="form-field" style="margin-bottom: 24px;">
+                    <label for="edit-student-name">ชื่อ - นามสกุล</label>
+                    <input type="text" id="edit-student-name" placeholder="ชื่อสกุลนักเรียน" required>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" class="btn-modern btn-modern-secondary w-100" id="btn-cancel-edit-student">ยกเลิก</button>
+                    <button type="button" class="btn-modern btn-modern-secondary w-100" id="btn-delete-student-modal" style="color: var(--danger-text); border-color: rgba(255, 59, 48, 0.2);"><i class="fa-solid fa-trash"></i> ลบ</button>
+                    <button type="submit" class="btn-modern btn-modern-primary w-100">บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL: OFFICIAL RECEIPT / INVOICE VIEW      -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-receipt">
+        <div class="premium-modal-content" style="width: 90%; max-width: 540px; padding: 24px;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-receipt-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="receipt-slip-viewer" style="display: none; text-align: center;">
+                <img src="" id="receipt-slip-img" style="max-width: 100%; max-height: 70vh; width: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 16px;" alt="สลิปโอนเงิน">
+                <div>
+                    <a href="#" id="btn-download-slip" download="receipt.png" class="btn-modern btn-modern-primary" style="width: 100%; justify-content: center; text-decoration: none;">
+                        <i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง
+                    </a>
+                </div>
+            </div>
+
+            <!-- Paper receipt -->
+            <div class="receipt-paper">
+                <div class="receipt-stamp"></div>
+                
+                <div class="receipt-header">
+                    <div style="font-size: 24px; margin-bottom: 4px;">🏫</div>
+                    <h4 class="receipt-title">ใบเสร็จรับเงินค่าธรรมเนียมการศึกษา</h4>
+                    <p style="font-size: 11px; color:#86868b; font-weight:600; margin-top:2px;">วิทยาลัยเทคโนโลยีนนทบุรี</p>
+                    <p style="font-size: 10px; color:#86868b;">ต.บางรักน้อย อ.เมืองนนทบุรี นนทบุรี 11000</p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px;">
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">เลขที่ใบเสร็จ:</span>
+                        <span class="receipt-val" id="receipt-no">REC20260515908</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">วันที่ชำระเงิน:</span>
+                        <span class="receipt-val" id="receipt-date">15 พฤษภาคม 2569</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">รหัสนักเรียน:</span>
+                        <span class="receipt-val" id="receipt-student-id">STD001</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">ชื่อนักเรียน:</span>
+                        <span class="receipt-val" id="receipt-student-name">สมชาย ใจดี</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">ระดับชั้น:</span>
+                        <span class="receipt-val" id="receipt-student-class">ปี 1 ห้อง 1</span>
+                    </div>
+                </div>
+
+                <!-- Items Grid -->
+                <div style="border-top: 1px solid #e5e5ea; padding-top: 12px; margin-top: 12px;">
+                    <div class="receipt-row" style="font-weight: 700; margin-bottom: 8px;">
+                        <span>รายการชำระ</span>
+                        <span>จำนวนเงิน</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span class="receipt-lbl">ค่าเล่าเรียนและค่าธรรมเนียมบำรุงการศึกษา</span>
+                        <span class="receipt-val" id="receipt-item-amount">60,000 THB</span>
+                    </div>
+                </div>
+
+                <div class="receipt-total-row">
+                    <div class="receipt-row" style="margin-bottom: 0; font-size: 16px; font-weight: 800;">
+                        <span>ยอดรับเงินรวมทั้งสิ้น</span>
+                        <span id="receipt-total-amount" style="color: var(--primary);">60,000 THB</span>
+                    </div>
+                </div>
+
+                <!-- Sign and stamp -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px;">
+                    <div id="receipt-barcode-sim" style="font-family: monospace; font-size: 10px; color:#86868b; text-align: left; opacity:0.7;">
+                        ||||||| | ||||| | || |||| |<br>
+                        *VERIFIED E-RECEIPT*
+                    </div>
+                    <div style="text-align: center; width: 140px;">
+                        <div style="border-bottom: 1px solid #86868b; height: 32px; font-family: 'Outfit'; font-size: 14px; font-weight: 700; color: #1e3a8a; line-height: 44px; font-style: italic;">
+                            SCB Financial
+                        </div>
+                        <p style="font-size: 10px; color:#86868b; margin-top: 4px; font-weight: 600;">เจ้าหน้าที่รับชำระเงิน</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Actions -->
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="button" class="btn-modern btn-modern-secondary w-100" id="btn-receipt-print">
+                    <i class="fa-solid fa-print"></i> พิมพ์เอกสาร
+                </button>
+                <button type="button" class="btn-modern btn-modern-primary w-100" id="btn-receipt-download">
+                    <i class="fa-solid fa-download"></i> ดาวน์โหลด PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================ -->
+    <!-- MODAL: SELECT BANK MOBILE APP DEEP LINK       -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-select-bank">
+        <div class="premium-modal-content" style="max-width: 420px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--neutral-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-mobile-screen-button" style="color: var(--primary);"></i> เลือกแอปธนาคารมือถือ
+                </h3>
+                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-bank-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 13px; color: #86868b; margin-bottom: 16px; line-height: 1.5;">
+                ระบบจะคัดลอกเลขบัญชี <strong>040-0-03605-3</strong> และยอดโอนเงินไปยังคลิปบอร์ดของคุณโดยอัตโนมัติก่อนเด้งเปิดแอปธนาคารบนมือถือเพื่อทำรายการโอน
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Krungthai NEXT -->
+                <button class="bank-app-btn" data-bank="Krungthai NEXT" data-scheme="krungthaicb://" style="background: #eef9ff; border: 1.5px solid #c2e9ff; color: #005c97; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <div style="background: #00a2e5; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">KTB</div>
+                    <div style="flex: 1;">
+                        <div>Krungthai NEXT</div>
+                        <div style="font-size: 11px; font-weight: 500; color: #519bc9;">เปิดแอปธนาคารกรุงไทย</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
+                </button>
+
+                <!-- K PLUS -->
+                <button class="bank-app-btn" data-bank="K PLUS" data-scheme="kplus://" style="background: #f1faf3; border: 1.5px solid #d0f0d6; color: #138030; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <div style="background: #138030; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">KBANK</div>
+                    <div style="flex: 1;">
+                        <div>K PLUS</div>
+                        <div style="font-size: 11px; font-weight: 500; color: #21a947;">เปิดแอปธนาคารกสิกรไทย</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
+                </button>
+
+                <!-- SCB EASY -->
+                <button class="bank-app-btn" data-bank="SCB EASY" data-scheme="scbeasy://" style="background: #f6f2fb; border: 1.5px solid #e7daf6; color: #4e2a84; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <div style="background: #4e2a84; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SCB</div>
+                    <div style="flex: 1;">
+                        <div>SCB EASY</div>
+                        <div style="font-size: 11px; font-weight: 500; color: #8e62c9;">เปิดแอปธนาคารไทยพาณิชย์</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
+                </button>
+
+                <!-- Bualuang mBanking -->
+                <button class="bank-app-btn" data-bank="Bualuang mBanking" data-scheme="mbanking://" style="background: #eff3f9; border: 1.5px solid #cce0ff; color: #0033a0; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <div style="background: #0033a0; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">BBL</div>
+                    <div style="flex: 1;">
+                        <div>Bualuang mBanking</div>
+                        <div style="font-size: 11px; font-weight: 500; color: #5185ea;">เปิดแอปธนาคารกรุงเทพ</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
+                </button>
+
+                <!-- ttb touch -->
+                <button class="bank-app-btn" data-bank="ttb touch" data-scheme="ttbtouch://" style="background: #fff8f0; border: 1.5px solid #ffe8cc; color: #f25f22; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <div style="background: #f25f22; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">TTB</div>
+                    <div style="flex: 1;">
+                        <div>ttb touch</div>
+                        <div style="font-size: 11px; font-weight: 500; color: #fa8f64;">เปิดแอปธนาคารทหารไทยธนชาต</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
+                </button>
+            </div>
+            
+            <div id="bank-overlay-notice" style="display: none; margin-top: 16px; background: rgba(0,0,0,0.04); border-radius: var(--radius-sm); padding: 12px; text-align: center; animation: fadeIn 0.3s;">
+                <span class="pulse-indicator" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 6px; animation: pulse 1.5s infinite;"></span>
+                <span id="bank-overlay-text" style="font-size: 12px; font-weight: 700; color: var(--success-text);"></span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================ -->
+    <!-- MODAL: EDIT SLIP DETAILS                     -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-edit-slip" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); z-index: 1100; align-items: center; justify-content: center; animation: fadeIn 0.25s ease;">
+        <div style="background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); width: 100%; max-width: 480px; padding: 24px; animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1.5px solid var(--neutral-border); padding-bottom: 12px;">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--neutral-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-pen-to-square" style="color: var(--accent);"></i> แก้ไขรายละเอียดข้อมูลบนภาพสลิป
+                </h3>
+                <button type="button" id="btn-close-edit-slip" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #86868b; transition: color 0.2s;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="form-edit-slip" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                    <label for="edit-slip-std-name" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">ชื่อผู้โอน (ชื่อ-นามสกุล / รุ่น)</label>
+                    <input type="text" id="edit-slip-std-name" required placeholder="ตัวอย่าง: วิริวัลย์ เปสุยะ รุ่น21" style="font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label for="edit-slip-std-id" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">รหัสประจำตัว หรือ รหัสนักเรียน</label>
+                    <input type="text" id="edit-slip-std-id" required placeholder="ตัวอย่าง: รหัส0338" style="font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label for="edit-slip-phone" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">เบอร์โทรศัพท์มือถือ</label>
+                    <input type="text" id="edit-slip-phone" placeholder="เช่น 081-132-2816" style="font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label for="edit-slip-amount" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">จำนวนเงินที่โอน (บาท)</label>
+                    <input type="number" id="edit-slip-amount" required min="1" placeholder="ตัวอย่าง: 2500" style="font-weight: 700; color: var(--primary);">
+                </div>
+                <div class="form-field">
+                    <label for="edit-slip-date" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">วันที่และเวลาทำรายการ</label>
+                    <input type="text" id="edit-slip-date" required placeholder="ตัวอย่าง: 22 มี.ค. 69 10:31 น." style="font-weight: 600;">
+                </div>
+                
+                <div style="margin-top: 10px; display: flex; gap: 12px;">
+                    <button type="button" id="btn-cancel-edit-slip" class="btn-modern btn-modern-secondary w-100" style="height: 46px;">ยกเลิก</button>
+                    <button type="submit" class="btn-modern btn-modern-primary w-100" style="height: 46px; background: var(--accent); border-color: var(--accent);">วาดและสร้างสลิปจำลอง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL: STAMP DETAILS ON ACTUAL SLIP          -->
+    <!-- ============================================ -->
+    <div class="modal-backdrop" id="modal-stamp-slip" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); z-index: 1100; align-items: center; justify-content: center; animation: fadeIn 0.25s ease;">
+        <div style="background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); width: 100%; max-width: 440px; padding: 24px; animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1.5px solid var(--neutral-border); padding-bottom: 12px;">
+                <h3 style="font-size: 17px; font-weight: 800; color: var(--neutral-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-file-signature" style="color: var(--accent);"></i> พิมพ์ข้อมูลลงบนสลิปอัตโนมัติ
+                </h3>
+                <button type="button" id="btn-close-stamp" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #86868b;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 13px; color: #6e6e73; margin-bottom: 16px; line-height: 1.5;">
+                พิมพ์ชื่อ รหัสนักเรียน และเบอร์โทรลงบนมุมสลิปได้ทันที เพื่อความรวดเร็วในการตรวจสอบยอดและยืนยันข้อมูลจากทางวิทยาลัย
+            </p>
+            
+            <form id="form-stamp-slip" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                    <label for="stamp-slip-name" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">ชื่อ-นามสกุล และรุ่น</label>
+                    <input type="text" id="stamp-slip-name" required style="font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label for="stamp-slip-id" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">รหัสประจำตัวนักเรียน</label>
+                    <input type="text" id="stamp-slip-id" required style="font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label for="stamp-slip-phone" style="font-weight: 700; font-size: 12px; color: #6e6e73; margin-bottom: 6px;">เบอร์โทรศัพท์มือถือ</label>
+                    <input type="text" id="stamp-slip-phone" required placeholder="เช่น 0811322816" style="font-weight: 600;">
+                </div>
+                
+                <div style="margin-top: 10px; display: flex; gap: 12px;">
+                    <button type="button" id="btn-cancel-stamp" class="btn-modern btn-modern-secondary w-100" style="height: 46px;">ยกเลิก</button>
+                    <button type="submit" class="btn-modern btn-modern-primary w-100" style="height: 46px; background: var(--accent); border-color: var(--accent);">เขียนทับบนสลิปทันที</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Checkmark Modal -->
+    <div id="modal-success-checkmark" class="premium-modal">
+        <div class="success-checkmark-card">
+            <lottie-player id="lottie-success-player" background="transparent" speed="1.2" style="width: 220px; height: 220px;" autoplay></lottie-player>
+        </div>
+    </div>
+
+    <!-- System Libraries -->
+    <script src="js/store.js"></script>
+    <script src="js/lottie-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
