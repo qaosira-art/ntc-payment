@@ -199,16 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function switchView(viewId) {
         const sections = document.querySelectorAll('.view-section');
+        
         sections.forEach(sec => {
             if (sec.id === viewId) {
                 sec.classList.remove('hidden');
+                // บังคับให้ CSS Animation เริ่มใหม่ทุกครั้งที่เปลี่ยนหน้าเพื่อความลื่นไหล
+                sec.style.animation = 'none';
+                void sec.offsetWidth; // Trigger reflow
+                sec.style.animation = ''; 
             } else {
                 sec.classList.add('hidden');
             }
         });
         
-        // Auto scroll to top on view changes
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // เอา smooth scroll ออกตอนเปลี่ยนหน้า เพราะมันจะตีกับ Animation SlideUp ทำให้จอมันกระตุก
+        window.scrollTo(0, 0);
     }
 
     // =========================================================================
