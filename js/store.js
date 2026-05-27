@@ -43,7 +43,14 @@ class TuitionStore {
      */
     async init() {
         try {
-            await this.seedDataIfEmpty();
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('seed') === 'true') {
+                console.log("Seed parameter detected. Seeding mock data...");
+                await this.seedDataIfEmpty();
+                // Clean up the URL parameter without refreshing the page
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            }
             return true;
         } catch (err) {
             console.error("Failed to initialize or seed Supabase database", err);
@@ -181,6 +188,26 @@ class TuitionStore {
         return data;
     }
 
+    async deletePayment(id) {
+        const { error } = await this.supabase
+            .from('payments')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        this.invalidateCache();
+        return true;
+    }
+
+    async deletePaymentsByStudentId(studentId) {
+        const { error } = await this.supabase
+            .from('payments')
+            .delete()
+            .eq('studentId', studentId);
+        if (error) throw error;
+        this.invalidateCache();
+        return true;
+    }
+
     // --- SEED MOCK DATA ---
 
     async seedDataIfEmpty() {
@@ -287,258 +314,443 @@ class TuitionStore {
     generateMockSlipBase64(stdId, stdName, amount, dateStr, phoneStr) {
         const canvas = document.createElement('canvas');
         canvas.width = 460;
-        canvas.height = 620;
+        canvas.height = 640;
         const ctx = canvas.getContext('2d');
 
         // Defaults
-        const nameVal = stdName || 'วิริวัลย์ เปสุยะ รุ่น21';
-        const idVal = stdId || 'รหัส0338';
-        const phoneVal = phoneStr || '0811322816';
-        const amountVal = amount ? parseFloat(amount) : 2500;
-        const dateVal = dateStr || '22 มี.ค. 69 10:31 น.';
+        const nameVal = stdName || 'วิริวัลย์ เปสุยะ';
+        const idVal = stdId || 'STD002';
+        const amountVal = amount ? parseFloat(amount) : 25.00;
+        const dateVal = dateStr || '17 พ.ค. 2569 19:46';
 
-        // 1. Background (Light Blue-Green Gradient matching Kasikornbank K+ Slip)
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        bgGrad.addColorStop(0, '#e5f6f7');
-        bgGrad.addColorStop(0.3, '#f2fafb');
-        bgGrad.addColorStop(1, '#ffffff');
-        ctx.fillStyle = bgGrad;
+        // Helper function to format Thai Date to exactly "17 พ.ค. 2569 - 19:46"
+        function formatThaiDate(dateStr) {
+            const thMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            let d = new Date();
+            
+            // Check if it's already a formatted string containing "น." or "-"
+            if (dateStr && (dateStr.includes('น.') || dateStr.includes('-'))) {
+                return dateStr.replace(' น.', '').replace(/\s+/g, ' ');
+            }
+            
+            if (dateStr) {
+                // Try parsing standard formats like "12/05/2026 14:15"
+                const parts = dateStr.split(/[\s/:-]+/);
+                if (parts.length >= 5) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1;
+                    let year = parseInt(parts[2]);
+                    if (year < 2500) year += 543; // convert to BE
+                    const hr = parts[3];
+                    const min = parts[4];
+                    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+                        return `${day} ${thMonths[month]} ${year} - ${hr}:${min}`;
+                    }
+                }
+                
+                const parsed = new Date(dateStr);
+                if (!isNaN(parsed.getTime())) {
+                    d = parsed;
+                }
+            }
+            
+            const day = d.getDate();
+            const monthIndex = d.getMonth();
+            const year = d.getFullYear() + 543; // BE
+            const hr = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return `${day} ${thMonths[monthIndex]} ${year} - ${hr}:${min}`;
+        }
+
+        // 1. Draw Base Background (White with subtle guilloche security lines)
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. Draw Decorative Money Float Shapes on Background
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.04)';
-        // Rect 1
-        ctx.save();
-        ctx.translate(350, 60);
-        ctx.rotate(Math.PI / 8);
-        ctx.fillRect(0, 0, 40, 24);
-        ctx.restore();
-        // Rect 2
-        ctx.save();
-        ctx.translate(410, 100);
-        ctx.rotate(-Math.PI / 12);
-        ctx.fillRect(0, 0, 36, 20);
-        ctx.restore();
-
-        // 3. Header Section
-        ctx.textAlign = 'left';
-        // "โอนเงินสำเร็จ" Green Accent Bar
-        ctx.fillStyle = '#11b880';
-        ctx.fillRect(15, 20, 5, 45);
-
-        ctx.fillStyle = '#1d1d1f';
-        ctx.font = 'bold 20px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('โอนเงินสำเร็จ', 28, 40);
-
-        ctx.fillStyle = '#6e6e73';
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText(dateVal, 28, 60);
-
-        // K+ Logo (Top Right)
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#1d1d1f';
-        ctx.font = 'bold 28px Arial, sans-serif';
-        ctx.fillText('K', 410, 50);
-        ctx.fillStyle = '#11b880';
-        ctx.font = 'bold 24px Arial, sans-serif';
-        ctx.fillText('+', 425, 48);
-        ctx.textAlign = 'left'; // Reset
-
-        // Divider
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        // Draw light gray border around slip
+        ctx.strokeStyle = '#e5e5ea';
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(15, 80);
-        ctx.lineTo(canvas.width - 15, 80);
-        ctx.stroke();
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-        // 4. FROM SECTION (Kasikornbank Circle Logo)
-        // Red Outer Circle for Kbank Logo
-        ctx.fillStyle = '#e53e3e';
-        ctx.beginPath();
-        ctx.arc(45, 130, 22, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Stylized Rice sheaf logo inside circle (KBank icon representation)
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(40, 120);
-        ctx.lineTo(40, 140);
-        ctx.moveTo(45, 118);
-        ctx.lineTo(45, 142);
-        ctx.moveTo(50, 120);
-        ctx.lineTo(50, 140);
-        ctx.stroke();
-
-        // From text
-        ctx.fillStyle = '#1d1d1f';
-        ctx.font = 'bold 13px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText(nameVal, 80, 120);
-        
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillStyle = '#4a5568';
-        ctx.fillText(`ธ.กสิกรไทย   ${phoneVal ? 'รหัส ' + idVal : idVal}`, 80, 138);
-        
-        ctx.fillStyle = '#718096';
-        ctx.font = '11px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText(phoneVal ? `เบอร์มือถือ: ${phoneVal}` : 'xxx-x-x2215-x', 80, 154);
-
-        // 5. CONNECTING ARROW
-        ctx.strokeStyle = '#a0aec0';
+        // Draw faint guilloche curves at the bottom
+        ctx.save();
+        ctx.strokeStyle = 'rgba(230, 100, 150, 0.02)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(45, 162);
-        ctx.lineTo(45, 182);
-        ctx.moveTo(41, 176);
-        ctx.lineTo(45, 182);
-        ctx.lineTo(49, 176);
+        ctx.moveTo(0, canvas.height - 150);
+        ctx.bezierCurveTo(150, canvas.height - 200, 300, canvas.height - 100, canvas.width, canvas.height - 120);
         ctx.stroke();
 
-        // 6. TO SECTION (Krungthai Bank Blue Logo)
+        ctx.strokeStyle = 'rgba(100, 150, 230, 0.02)';
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 120);
+        ctx.bezierCurveTo(120, canvas.height - 80, 280, canvas.height - 180, canvas.width, canvas.height - 100);
+        ctx.stroke();
+        ctx.restore();
+
+        // 2. Sky Blue Banner Gradient
+        const bannerHeight = 140;
+        const bannerGrad = ctx.createLinearGradient(0, 0, 0, bannerHeight);
+        bannerGrad.addColorStop(0, '#59c2f6');
+        bannerGrad.addColorStop(1, '#0e6fdf');
+        ctx.fillStyle = bannerGrad;
+        ctx.fillRect(0, 0, canvas.width, bannerHeight);
+
+        // Sun Glow and clouds
+        ctx.save();
+        const sunGrad = ctx.createRadialGradient(80, 50, 0, 80, 50, 80);
+        sunGrad.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+        sunGrad.addColorStop(0.2, 'rgba(255, 255, 230, 0.2)');
+        sunGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(80, 50, 80, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.beginPath();
+        ctx.arc(30, 110, 40, 0, Math.PI * 2);
+        ctx.arc(70, 120, 35, 0, Math.PI * 2);
+        ctx.arc(110, 125, 30, 0, Math.PI * 2);
+        ctx.arc(0, 130, 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.beginPath();
+        ctx.arc(380, 120, 45, 0, Math.PI * 2);
+        ctx.arc(420, 125, 35, 0, Math.PI * 2);
+        ctx.arc(460, 130, 40, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Kite
+        ctx.save();
+        ctx.translate(340, 45);
+        ctx.rotate(Math.PI / 12);
+        ctx.fillStyle = '#ffaa3b';
+        ctx.beginPath();
+        ctx.moveTo(0, -18);
+        ctx.lineTo(14, 0);
+        ctx.lineTo(0, 18);
+        ctx.lineTo(-14, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -18);
+        ctx.lineTo(0, 18);
+        ctx.moveTo(-14, 0);
+        ctx.lineTo(14, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        // Kite Tails
+        ctx.save();
+        ctx.strokeStyle = '#ffaa3b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(344, 62);
+        ctx.bezierCurveTo(365, 80, 390, 65, 430, 75);
+        ctx.moveTo(344, 62);
+        ctx.bezierCurveTo(370, 95, 410, 80, 440, 95);
+        ctx.stroke();
+        ctx.restore();
+
+        // Krungthai Logo in center of banner
+        ctx.save();
+        const logoX = canvas.width / 2 - 60;
+        const logoY = 65;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(logoX + 15, logoY - 12);
+        ctx.quadraticCurveTo(logoX + 25, logoY - 18, logoX + 32, logoY - 14);
+        ctx.lineTo(logoX + 35, logoY - 16);
+        ctx.lineTo(logoX + 33, logoY - 10);
+        ctx.quadraticCurveTo(logoX + 40, logoY + 5, logoX + 30, logoY + 12);
+        ctx.quadraticCurveTo(logoX + 15, logoY + 18, logoX + 8, logoY + 8);
+        ctx.quadraticCurveTo(logoX, logoY - 2, logoX + 15, logoY - 12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(logoX + 20, logoY + 2, 12, -Math.PI/2, Math.PI/2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(logoX + 20, logoY + 2, 7, -Math.PI/2, Math.PI/2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Arial, sans-serif';
+        ctx.fillText('Krungthai', logoX + 48, logoY - 2);
+
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('กรุงไทย', logoX + 50, logoY + 14);
+        ctx.restore();
+
+        // 3. Green Circle Checkmark & "จ่ายบิลสำเร็จ"
+        const contentY = 160;
+        ctx.save();
+        ctx.fillStyle = '#2cb713';
+        ctx.beginPath();
+        ctx.arc(45, contentY + 25, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(37, contentY + 25);
+        ctx.lineTo(42, 30 + contentY);
+        ctx.lineTo(53, 19 + contentY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#2cb713';
+        ctx.font = 'bold 20px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('จ่ายบิลสำเร็จ', 80, contentY + 18);
+
+        ctx.fillStyle = '#86868b';
+        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('รหัสอ้างอิง', 80, contentY + 38);
+
+        let refNo = 'C';
+        try {
+            const cleanDate = dateVal.replace(/[^0-9]/g, '');
+            if (cleanDate.length >= 8) {
+                refNo += cleanDate.substring(0, 8);
+            } else {
+                refNo += '20260517';
+            }
+        } catch (e) {
+            refNo += '20260517';
+        }
+        refNo += String(Math.floor(100000000000 + Math.random() * 900000000000));
+        ctx.fillStyle = '#86868b';
+        ctx.font = '13px Arial, sans-serif';
+        ctx.fillText(refNo, 80, contentY + 56);
+        ctx.restore();
+
+        // Draw QR Code on the right
+        const qrX = 350;
+        const qrY = contentY - 5;
+        const qrSize = 75;
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(qrX, qrY, qrSize, qrSize);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(qrX, qrY, 20, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(qrX + 4, qrY + 4, 12, 12);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(qrX + 6, qrY + 6, 8, 8);
+
+        ctx.fillRect(qrX + qrSize - 20, qrY, 20, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(qrX + qrSize - 16, qrY + 4, 12, 12);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(qrX + qrSize - 14, qrY + 6, 8, 8);
+
+        ctx.fillRect(qrX, qrY + qrSize - 20, 20, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(qrX + 4, qrY + qrSize - 16, 12, 12);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(qrX + 6, qrY + qrSize - 14, 8, 8);
+
+        ctx.fillStyle = '#000000';
+        for (let y = qrY + 24; y < qrY + qrSize; y += 4) {
+            for (let x = qrX + 24; x < qrX + qrSize; x += 4) {
+                if (Math.random() > 0.5) ctx.fillRect(x, y, 4, 4);
+            }
+        }
+        for (let y = qrY; y < qrY + 20; y += 4) {
+            for (let x = qrX + 24; x < qrX + qrSize - 20; x += 4) {
+                if (Math.random() > 0.5) ctx.fillRect(x, y, 4, 4);
+            }
+        }
+        for (let y = qrY + 24; y < qrY + qrSize - 20; y += 4) {
+            for (let x = qrX; x < qrX + 20; x += 4) {
+                if (Math.random() > 0.5) ctx.fillRect(x, y, 4, 4);
+            }
+        }
+        ctx.restore();
+
+        // 4. Sender Information (Krungthai Blue badge)
+        const senderY = 245;
+        ctx.save();
         ctx.fillStyle = '#00a2e5';
         ctx.beginPath();
-        ctx.arc(45, 215, 22, 0, Math.PI * 2);
+        ctx.arc(45, senderY + 20, 18, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bird symbol inside circle (KTB representation)
-        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(45, 215, 8, 0, Math.PI * 2);
+        ctx.moveTo(39, senderY + 20);
+        ctx.quadraticCurveTo(45, senderY + 12, 51, senderY + 17);
+        ctx.moveTo(42, senderY + 22);
+        ctx.quadraticCurveTo(45, senderY + 16, 48, senderY + 22);
+        ctx.stroke();
+
+        const nameParts = nameVal.split(/\s+/);
+        const firstName = nameParts[0] || 'ศิระ';
+        let lastName = nameParts[1] || 'ยอแสง';
+        if (lastName.length > 0 && lastName !== 'ยอแสง') {
+            lastName = lastName.charAt(0) + '***';
+        } else if (lastName === 'ยอแสง') {
+            lastName = 'ย***';
+        }
+        let prefix = '';
+        if (!firstName.startsWith('นาย') && !firstName.startsWith('นาง') && !firstName.startsWith('น.ส.') && !firstName.startsWith('นางสาว') && !firstName.startsWith('ด.ช.') && !firstName.startsWith('ด.ญ.')) {
+            prefix = firstName.includes('หญิง') || firstName.includes('พร') || firstName.includes('สาว') ? 'นางสาว' : 'นาย';
+        }
+        const displayName = `${prefix}${firstName} ${lastName}`;
+
+        ctx.fillStyle = '#1d1d1f';
+        ctx.font = 'bold 14px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText(displayName, 80, senderY + 12);
+
+        ctx.fillStyle = '#5e6e82';
+        ctx.font = '500 12px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('กรุงไทย', 80, senderY + 28);
+
+        let accSuffix = '543-9';
+        if (idVal) {
+            const numOnly = idVal.replace(/\D/g, '');
+            if (numOnly.length >= 3) {
+                accSuffix = numOnly.slice(-3) + '-' + Math.floor(Math.random() * 10);
+            }
+        }
+        const displayAcc = `XXX-X-XX${accSuffix}`;
+        ctx.fillStyle = '#86868b';
+        ctx.font = '12px Arial, sans-serif';
+        ctx.fillText(displayAcc, 80, senderY + 44);
+
+        // Connected arrows (dotted vertical line)
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(45, senderY + 42);
+        ctx.lineTo(45, senderY + 68);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(41, senderY + 63);
+        ctx.lineTo(45, senderY + 68);
+        ctx.lineTo(49, senderY + 63);
+        ctx.stroke();
+        ctx.restore();
+
+        // 5. Receiver Information (Gray circle with ...)
+        const receiverY = 325;
+        ctx.save();
+        ctx.fillStyle = '#f2f2f7';
+        ctx.beginPath();
+        ctx.arc(45, receiverY + 20, 18, 0, Math.PI * 2);
         ctx.fill();
 
-        // To text
+        ctx.fillStyle = '#5e6e82';
+        ctx.beginPath();
+        ctx.arc(39, receiverY + 20, 2.5, 0, Math.PI * 2);
+        ctx.arc(45, receiverY + 20, 2.5, 0, Math.PI * 2);
+        ctx.arc(51, receiverY + 20, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dynamic receiver details based on amount
+        let recName = 'วิทยาลัยเทคโนโลยีนนทบุรี';
+        let recBranch = 'TUITION SYSTEM - ONLINE PORTAL';
+        if (amountVal <= 100) {
+            recName = 'PUNGWEIIHEII BY BAKE MAKER';
+            recBranch = 'BRANCH KANCHANAPHISEK';
+        }
+
         ctx.fillStyle = '#1d1d1f';
-        ctx.font = 'bold 13px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('วิทยาลัยเทคโนโลยียานยนต์', 80, 206);
-        
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillStyle = '#4a5568';
-        ctx.fillText('ธ.กรุงไทย', 80, 224);
-        
-        ctx.fillStyle = '#718096';
-        ctx.font = '11px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('xxx-x-x3605-x', 80, 240);
+        ctx.font = 'bold 13px Arial, "Noto Sans Thai", sans-serif';
+        ctx.fillText(recName.toUpperCase(), 80, receiverY + 14);
+
+        ctx.font = 'bold 12px Arial, sans-serif';
+        ctx.fillStyle = '#5e6e82';
+        ctx.fillText(recBranch, 80, receiverY + 32);
+        ctx.restore();
 
         // Divider
         ctx.strokeStyle = 'rgba(0,0,0,0.06)';
         ctx.beginPath();
-        ctx.moveTo(15, 260);
-        ctx.lineTo(canvas.width - 15, 260);
+        ctx.moveTo(15, 390);
+        ctx.lineTo(canvas.width - 15, 390);
         ctx.stroke();
 
-        // 7. TRANSACTION DETAILS GRID (Left Column details, Right Column QR/Barcode)
-        // Draw Left Details
-        ctx.fillStyle = '#718096';
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('เลขที่รายการ:', 30, 290);
-        
-        ctx.fillStyle = '#2d3748';
-        ctx.font = 'bold 13px Arial, sans-serif';
-        ctx.fillText(`01${idVal.replace(/\D/g,'') || '081'}${Math.floor(Math.random()*10000)}COR${Math.floor(Math.random()*100000)}`, 30, 310);
+        // 6. Transaction Details Grid
+        const detailsX = 30;
+        const rightAlignX = canvas.width - 30;
+        ctx.save();
 
-        ctx.fillStyle = '#718096';
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('จำนวนเงิน:', 30, 345);
-        
+        // Merchant Code
+        ctx.fillStyle = '#86868b';
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('รหัสร้านค้า', detailsX, 420);
+        ctx.textAlign = 'right';
         ctx.fillStyle = '#1d1d1f';
-        ctx.font = 'bold 16px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText(`${amountVal.toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท`, 30, 368);
+        ctx.font = '500 14px Arial, sans-serif';
+        const merchantCode = amountVal <= 100 ? 'KB000001889785' : 'KB0400036053';
+        ctx.fillText(merchantCode, rightAlignX, 420);
 
-        ctx.fillStyle = '#718096';
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('ค่าธรรมเนียม:', 30, 405);
-        
-        ctx.fillStyle = '#2d3748';
-        ctx.font = '12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText('0.00 บาท', 30, 425);
-
-        // Draw Right Barcode/QR Mockup (matching user screenshot)
-        const qrX = 290;
-        const qrY = 280;
-        const qrSize = 120;
-
-        // QR Box border
-        ctx.strokeStyle = '#cbd5e0';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(qrX, qrY, qrSize, qrSize);
-
-        // QR Corners (Programmatic representation)
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + 8, qrY + 8, 28, 28);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(qrX + 14, qrY + 14, 16, 16);
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + 18, qrY + 18, 8, 8);
-
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + qrSize - 36, qrY + 8, 28, 28);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(qrX + qrSize - 30, qrY + 14, 16, 16);
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + qrSize - 26, qrY + 18, 8, 8);
-
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + 8, qrY + qrSize - 36, 28, 28);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(qrX + 14, qrY + qrSize - 30, 16, 16);
-        ctx.fillStyle = '#1a202c';
-        ctx.fillRect(qrX + 18, qrY + qrSize - 26, 8, 8);
-
-        // Mock QR Noise (Small Squares)
-        ctx.fillStyle = '#2d3748';
-        for (let i = 0; i < 18; i++) {
-            const rx = qrX + 38 + Math.floor(Math.random() * 40);
-            const ry = qrY + 8 + Math.floor(Math.random() * 100);
-            ctx.fillRect(rx, ry, 6, 6);
+        // Transaction ID
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#86868b';
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('รหัสธุรกรรม', detailsX, 455);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#1d1d1f';
+        ctx.font = '500 14px Arial, sans-serif';
+        let txnId = 'APIC';
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (let i = 0; i < 16; i++) {
+            txnId += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        for (let i = 0; i < 10; i++) {
-            const rx = qrX + 8 + Math.floor(Math.random() * 100);
-            const ry = qrY + 38 + Math.floor(Math.random() * 40);
-            ctx.fillRect(rx, ry, 6, 6);
-        }
+        ctx.fillText(txnId, rightAlignX, 455);
 
-        // Label under QR Code
-        ctx.fillStyle = '#718096';
-        ctx.font = '10px "Noto Sans Thai", Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('สแกนตรวจสอบสลิป', qrX + qrSize / 2, qrY + qrSize + 16);
-        ctx.textAlign = 'left'; // Reset
+        // Amount
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#86868b';
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('จำนวนเงิน', detailsX, 495);
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 18px Arial, sans-serif';
+        ctx.fillStyle = '#1d1d1f';
+        const amountStr = amountVal.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+        ctx.fillText(amountStr, rightAlignX - 35, 495);
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('บาท', rightAlignX, 495);
 
-        // Divider
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-        ctx.beginPath();
-        ctx.moveTo(15, 460);
-        ctx.lineTo(canvas.width - 15, 460);
-        ctx.stroke();
+        // Fee
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#86868b';
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('ค่าธรรมเนียม', detailsX, 535);
+        ctx.textAlign = 'right';
+        ctx.font = '500 14px Arial, sans-serif';
+        ctx.fillText('0.00', rightAlignX - 35, 535);
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('บาท', rightAlignX, 535);
 
-        // 8. Bottom Note Section
-        ctx.fillStyle = '#4a5568';
-        ctx.font = 'bold 12px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillText(`บันทึกช่วยจำ: ${nameVal} ${idVal}`, 30, 490);
+        // Transaction Date
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#86868b';
+        ctx.font = '500 13px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText('วันที่ทำรายการ', detailsX, 575);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#1d1d1f';
+        ctx.font = '500 13.5px "Noto Sans Thai", Arial, sans-serif';
+        ctx.fillText(formatThaiDate(dateVal), rightAlignX, 575);
 
-        // Green Safe Stamp Banner
-        ctx.fillStyle = '#f0fdf4';
-        ctx.fillRect(0, 530, canvas.width, 90);
-        
-        ctx.fillStyle = '#15803d';
-        ctx.font = 'bold 11px "Noto Sans Thai", Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('หลักฐานการโอนเงินสำเร็จด้วยแอป K PLUS ของผู้โอน', canvas.width / 2, 560);
-        ctx.font = '10px "Noto Sans Thai", Arial, sans-serif';
-        ctx.fillStyle = '#16a34a';
-        ctx.fillText('ข้อมูลการโอนเงินส่งไปยังสถาบันวิทยาลัยเทคโนโลยียานยนต์สำเร็จ', canvas.width / 2, 580);
-
-        // Security side thin lines
-        ctx.strokeStyle = '#11b880';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, canvas.height);
-        ctx.moveTo(canvas.width, 0);
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.stroke();
+        ctx.restore();
 
         return canvas.toDataURL('image/png');
     }

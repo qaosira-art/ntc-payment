@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedPaymentMode: 'full', // 'full' or 'custom'
         uploadedSlipBase64: null,
         uploadedSlipName: null,
+        originalUploadedSlipBase64: null,
+        customStudentInfo: null,
+        
+        // Stamp Header details
+        stampName: '',
+        stampId: '',
         
         // Admin View state
         activeAdminTab: 'vault', // 'vault' or 'students'
@@ -104,6 +110,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize application
     initApp();
+
+    // =========================================================================
+    // CANVAS-LEVEL HEADERED SLIP IMAGE GENERATOR (PREMIUM TOP HEADER ZONE)
+    // =========================================================================
+    async function generateHeaderedSlip(originalBase64, stampName, stampId) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const W = img.naturalWidth;
+                    const H = img.naturalHeight;
+                    
+                    const scale = W / 600;
+                    const headerHeight = Math.round(110 * scale);
+                    
+                    canvas.width = W;
+                    canvas.height = H + headerHeight;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 1. Draw header background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, W, headerHeight);
+                    
+                    // 2. Draw subtle bottom divider line
+                    ctx.strokeStyle = '#e5e5ea';
+                    ctx.lineWidth = Math.max(1.5 * scale, 1);
+                    ctx.beginPath();
+                    ctx.moveTo(0, headerHeight - ctx.lineWidth/2);
+                    ctx.lineTo(W, headerHeight - ctx.lineWidth/2);
+                    ctx.stroke();
+                    
+                    // 3. Draw text details (Centered)
+                    const fontSize = Math.max(22 * scale, 18);
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // First line: Class/ID/Room
+                    ctx.fillStyle = '#86868b'; // Apple gray
+                    ctx.font = `600 ${fontSize * 0.8}px 'Noto Sans Thai', sans-serif`;
+                    ctx.fillText(stampName, W / 2, headerHeight * 0.35);
+                    
+                    // Second line: Name
+                    ctx.fillStyle = '#1d1d1f'; // Apple black
+                    ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
+                    ctx.fillText(stampId, W / 2, headerHeight * 0.7);
+                    
+                    // 4. Draw original slip below header
+                    ctx.drawImage(img, 0, headerHeight);
+                    
+                    resolve(canvas.toDataURL('image/png'));
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            img.onerror = (err) => reject(new Error("ไม่สามารถโหลดและประมวลผลรูปภาพดั้งเดิมได้"));
+            img.src = originalBase64;
+        });
+    }
 
     async function initApp() {
         try {
@@ -283,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="student-card-name">${student.name}</div>
                             <div class="student-card-meta">
                                 <span class="student-card-tag-id">ID: ${student.id}</span>
-                                <span class="student-card-tag-room">ห้อง ${student.room}</span>
                             </div>
                         </div>
                     </div>
@@ -386,6 +451,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function logInStudent(student) {
         state.currentStudent = student;
         sessionStorage.setItem('currentStudentId', student.id);
+        
+        // Initialize stamp details for Header Zone
+        const last4 = student.id.replace(/\D/g, '').slice(-4) || student.id.slice(-4);
+        let genText = student.generation || student.year || '-';
+        if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
+        state.stampName = `${genText} รหัส ${last4} ห้อง ${student.room || '-'}`;
+        state.stampId = student.name;
         
         // Set header active state
         document.querySelectorAll('.app-header .nav-tab').forEach(t => t.classList.remove('active'));
@@ -688,27 +760,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnCloseStamp = document.getElementById('btn-close-stamp');
         const btnCancelStamp = document.getElementById('btn-cancel-stamp');
         const formStampSlip = document.getElementById('form-stamp-slip');
-
+ 
         const closeStampModal = () => {
             modalStampSlip.style.display = 'none';
         };
-
+ 
         if (btnOpenStampModal) {
             btnOpenStampModal.addEventListener('click', () => {
                 if (!state.currentStudent || !state.uploadedSlipBase64) {
                     alert("❌ กรุณาแนบไฟล์ภาพสลิปชำระเงินก่อนใช้งานฟีเจอร์นี้");
                     return;
                 }
-
-                // Pre-fill student context details dynamically
-                document.getElementById('stamp-slip-name').value = document.getElementById('stamp-badge-name').textContent;
-                document.getElementById('stamp-slip-id').value = document.getElementById('stamp-badge-id').textContent;
-                document.getElementById('stamp-slip-phone').value = document.getElementById('stamp-badge-room').textContent;
-
+ 
+                // Pre-fill from state variables
+                document.getElementById('stamp-slip-name').value = state.stampName;
+                document.getElementById('stamp-slip-id').value = state.stampId;
+                document.getElementById('stamp-slip-phone').value = state.currentStudent.phone || '081-132-2816';
+ 
                 modalStampSlip.style.display = 'flex';
             });
         }
-
+ 
         if (btnCloseStamp) btnCloseStamp.addEventListener('click', closeStampModal);
         if (btnCancelStamp) btnCancelStamp.addEventListener('click', closeStampModal);
         if (modalStampSlip) {
@@ -716,25 +788,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.target.id === 'modal-stamp-slip') closeStampModal();
             });
         }
-
+ 
         if (formStampSlip) {
-            formStampSlip.addEventListener('submit', (e) => {
+            formStampSlip.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const nameVal = document.getElementById('stamp-slip-name').value.trim();
                 const idVal = document.getElementById('stamp-slip-id').value.trim();
                 const phoneVal = document.getElementById('stamp-slip-phone').value.trim();
-
+ 
                 if (!nameVal || !idVal || !phoneVal) {
                     alert("❌ กรุณากรอกข้อมูลให้ครบทุกช่อง");
                     return;
                 }
-
-                // Update text inside interactive draggable badge overlay
-                document.getElementById('stamp-badge-name').textContent = nameVal;
-                document.getElementById('stamp-badge-id').textContent = idVal;
-                document.getElementById('stamp-badge-room').textContent = phoneVal;
-
+ 
+                // Update state variables
+                state.stampName = nameVal;
+                state.stampId = idVal;
+ 
+                // Re-generate headered slip using original uploaded clean slip!
+                if (state.originalUploadedSlipBase64) {
+                    try {
+                        const processedBase64 = await generateHeaderedSlip(state.originalUploadedSlipBase64, state.stampName, state.stampId);
+                        state.uploadedSlipBase64 = processedBase64;
+                        document.getElementById('slip-preview-img').src = processedBase64;
+                    } catch (err) {
+                        console.error("Error regenerating headered slip:", err);
+                        alert("❌ เกิดข้อผิดพลาดในการสร้างภาพสลิปใหม่");
+                    }
+                }
+ 
                 // Close modal
                 closeStampModal();
             });
@@ -818,64 +901,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Generate custom K+ Base64 PNG
             const base64Png = window.tuitionStore.generateMockSlipBase64(id, name, amount, dateStr, phone);
-
-            state.uploadedSlipBase64 = base64Png;
+ 
             state.originalUploadedSlipBase64 = base64Png; // Store clean original mockup slip backup
             state.uploadedSlipName = `slip_${state.currentStudent.id}_custom.png`;
-
-            // Reset and populate draggable HTML badge texts/locations
-            const badge = document.getElementById('slip-interactive-badge');
-            if (badge) {
-                const last4 = state.currentStudent.id.replace(/\D/g, '').slice(-4) || state.currentStudent.id.slice(-4);
-                let genText = state.currentStudent.year || '-';
-                if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
-                document.getElementById('stamp-badge-name').textContent = `${genText} รหัส ${last4} ห้อง ${state.currentStudent.room || '-'}`;
-                document.getElementById('stamp-badge-id').textContent = state.currentStudent.name;
-                
-                // Reset position strictly to top-right corner
-                badge.style.display = 'block';
-                badge.style.top = '2.5cqw';
-                badge.style.left = 'auto';
-                badge.style.right = '2.5cqw';
-            }
-
-            // Display in Preview
-            const previewContainer = document.getElementById('slip-preview-container');
-            const previewImg = document.getElementById('slip-preview-img');
-            previewImg.src = base64Png;
-            previewContainer.style.display = 'block';
-
-            // Auto-populate the main input payment amount matching mock slip
-            const mainPayInput = document.getElementById('input-pay-amount');
-            if (mainPayInput) {
-                mainPayInput.value = amount;
-                mainPayInput.dispatchEvent(new Event('input'));
-            }
-
-            // Clear error if present
-            document.getElementById('slip-error').style.display = 'none';
-
-            // Close Modal
-            closeEditSlipModal();
-
-            // Notify user of success
-            alert("🎉 สร้างและแนบภาพสลิปจำลองที่แก้ไขเรียบร้อยแล้ว!");
+ 
+            // Reset stamp info to default context (in case they edited it earlier)
+            const last4 = state.currentStudent.id.replace(/\D/g, '').slice(-4) || state.currentStudent.id.slice(-4);
+            let genText = state.currentStudent.generation || state.currentStudent.year || '-';
+            if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
+            state.stampName = `${genText} รหัส ${last4} ห้อง ${state.currentStudent.room || '-'}`;
+            state.stampId = state.currentStudent.name;
+ 
+            // Generate the headered slip
+            generateHeaderedSlip(base64Png, state.stampName, state.stampId).then(processedBase64 => {
+                state.uploadedSlipBase64 = processedBase64;
+ 
+                // Display in Preview
+                const previewContainer = document.getElementById('slip-preview-container');
+                const previewImg = document.getElementById('slip-preview-img');
+                previewImg.src = processedBase64;
+                previewContainer.style.display = 'block';
+ 
+                // Auto-populate the main input payment amount matching mock slip
+                const mainPayInput = document.getElementById('input-pay-amount');
+                if (mainPayInput) {
+                    mainPayInput.value = amount;
+                    mainPayInput.dispatchEvent(new Event('input'));
+                }
+ 
+                // Clear error if present
+                document.getElementById('slip-error').style.display = 'none';
+ 
+                // Close Modal
+                closeEditSlipModal();
+ 
+                // Notify user of success
+                alert("🎉 สร้างและแนบภาพสลิปจำลองที่แก้ไขเรียบร้อยแล้ว!");
+            }).catch(err => {
+                console.error("Error generating headered mock slip:", err);
+                alert("❌ เกิดข้อผิดพลาดในการสร้างหัวกระดาษสลิปจำลอง");
+            });
         });
 
-        // COPY BANK ACCOUNT BUTTON
-        document.getElementById('btn-copy-acc').addEventListener('click', () => {
-            const accNo = document.getElementById('txt-bank-acc').textContent;
-            navigator.clipboard.writeText(accNo.replace(/-/g, ''));
-            
-            const btnIcon = document.getElementById('btn-copy-acc').querySelector('i');
-            btnIcon.className = 'fa-solid fa-circle-check';
-            btnIcon.style.color = 'var(--success)';
-            
-            setTimeout(() => {
-                btnIcon.className = 'fa-regular fa-copy';
-                btnIcon.style.color = '#86868b';
-            }, 1500);
-        });
 
         // FORM SUBMIT PAYMENT EVIDENCE
         document.getElementById('form-tuition-payment').addEventListener('submit', async (e) => {
@@ -913,105 +980,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     dropzoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     document.getElementById('slip-error').style.display = 'block';
                     return;
-                }
-
-                // If uploader stamp badge is visible, burn/stamp it into the raw clean uploaded image copy strictly at the top-right corner!
-                const badge = document.getElementById('slip-interactive-badge');
-                
-                if (badge && badge.style.display !== 'none' && state.originalUploadedSlipBase64) {
-                    // Show custom visual indicator during render
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังประมวลผลรูปภาพ...';
-
-                    // Canvas high-resolution stamping block
-                    const stampedSlip = await new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            try {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = img.naturalWidth;
-                                canvas.height = img.naturalHeight;
-                                const ctx = canvas.getContext('2d');
-                                
-                                // Draw raw base image
-                                ctx.drawImage(img, 0, 0);
-                                
-                                const width = canvas.width;
-                                const height = canvas.height;
-                                const scale = width / 600;
-                                
-                                const fontSize = Math.max(23 * scale, 19);
-                                const padding = 18 * scale;
-                                const lineSpacing = 8 * scale;
-                                
-                                // Calculate sizes
-                                const boxWidth = 370 * scale;
-                                const boxHeight = (fontSize * 2) + lineSpacing + (padding * 2.2);
-                                
-                                // Target coordinates fixed strictly at top-right corner (margin 2.5% of width)
-                                const gap = 0.025 * width;
-                                const targetX = width - boxWidth - gap;
-                                const targetY = gap;
-                                
-                                // Soft premium drop shadow
-                                ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-                                ctx.shadowBlur = 12 * scale;
-                                ctx.shadowOffsetX = 0;
-                                ctx.shadowOffsetY = 4 * scale;
-                                
-                                // Draw white rounded rect
-                                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                                const r = 12 * scale;
-                                ctx.beginPath();
-                                ctx.moveTo(targetX + r, targetY);
-                                ctx.lineTo(targetX + boxWidth - r, targetY);
-                                ctx.quadraticCurveTo(targetX + boxWidth, targetY, targetX + boxWidth, targetY + r);
-                                ctx.lineTo(targetX + boxWidth, targetY + boxHeight - r);
-                                ctx.quadraticCurveTo(targetX + boxWidth, targetY + boxHeight, targetX + boxWidth - r, targetY + boxHeight);
-                                ctx.lineTo(targetX + r, targetY + boxHeight);
-                                ctx.quadraticCurveTo(targetX, targetY + boxHeight, targetX, targetY + boxHeight - r);
-                                ctx.lineTo(targetX, targetY + r);
-                                ctx.quadraticCurveTo(targetX, targetY, targetX + r, targetY);
-                                ctx.closePath();
-                                ctx.fill();
-                                
-                                // Reset shadow
-                                ctx.shadowColor = 'transparent';
-                                ctx.shadowBlur = 0;
-                                ctx.shadowOffsetX = 0;
-                                ctx.shadowOffsetY = 0;
-                                
-                                // Blue border stroke
-                                ctx.strokeStyle = 'rgba(0, 102, 204, 0.25)';
-                                ctx.lineWidth = 2 * scale;
-                                ctx.stroke();
-                                
-                                // Slate text details
-                                ctx.fillStyle = '#1d1d1f';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'top';
-                                
-                                const nameText = document.getElementById('stamp-badge-name').textContent;
-                                const idText = document.getElementById('stamp-badge-id').textContent;
-                                
-                                // Draw 2 lines on canvas
-                                ctx.font = `600 ${fontSize * 0.82}px 'Noto Sans Thai', sans-serif`;
-                                ctx.fillText(nameText, targetX + (boxWidth / 2), targetY + padding);
-                                ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
-                                ctx.fillText(idText, targetX + (boxWidth / 2), targetY + padding + fontSize + lineSpacing);
-                                
-                                resolve(canvas.toDataURL('image/png'));
-                            } catch (canvasErr) {
-                                reject(canvasErr);
-                            }
-                        };
-                        img.onerror = (err) => {
-                            reject(new Error("ไม่สามารถโหลดและประมวลผลรูปภาพสลิปได้"));
-                        };
-                        img.src = state.originalUploadedSlipBase64;
-                    });
-                    
-                    state.uploadedSlipBase64 = stampedSlip;
                 }
 
                 // Valid payment, submit
@@ -1096,61 +1064,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // =========================================================================
-        // KTB MOBILE BANKING DEEP LINK SYSTEM
-        // =========================================================================
-        const btnOpenBanking = document.getElementById('btn-open-banking-app');
-        const modalSelectBank = document.getElementById('modal-select-bank');
-        const btnCloseBankModal = document.getElementById('btn-close-bank-modal');
-        
-        if (btnOpenBanking && modalSelectBank) {
-            btnOpenBanking.addEventListener('click', () => {
-                const val = parseFloat(customInput.value) || 0;
-                const remaining = state.currentStudent.totalTuition - state.currentStudent.paidAmount;
-                if (val <= 0 || val > remaining) {
-                    alert('❌ กรุณาระบุยอดชำระเงินที่ถูกต้องก่อนเปิดแอปธนาคาร!');
-                    return;
-                }
-                modalSelectBank.classList.add('active');
-            });
-        }
-        
-        if (btnCloseBankModal && modalSelectBank) {
-            btnCloseBankModal.addEventListener('click', () => {
-                modalSelectBank.classList.remove('active');
-                const overlay = document.getElementById('bank-overlay-notice');
-                if (overlay) overlay.style.display = 'none';
-            });
-        }
-        
-        document.querySelectorAll('.bank-app-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const bankName = btn.getAttribute('data-bank');
-                const schemeUrl = btn.getAttribute('data-scheme');
-                const payAmount = parseFloat(customInput.value) || 0;
-                
-                // Copy account details & amount to clipboard
-                try {
-                    const clipboardText = `เลขที่บัญชี: 040-0-03605-3\nยอดเงินโอน: ${payAmount.toLocaleString()} บาท\nธนาคารกรุงไทย\nชื่อบัญชี: วิทยาลัยเทคโนโลยียานยนต์`;
-                    await navigator.clipboard.writeText(clipboardText);
-                } catch (err) {
-                    console.error('Failed to copy to clipboard:', err);
-                }
-                
-                // Show dynamic status indicator
-                const overlay = document.getElementById('bank-overlay-notice');
-                const overlayText = document.getElementById('bank-overlay-text');
-                if (overlay && overlayText) {
-                    overlayText.textContent = `📋 คัดลอกเลขบัญชี 040-0-03605-3 และยอด ${payAmount.toLocaleString()} บ. ลงในคลิปบอร์ดแล้ว! กำลังเปิดแอป ${bankName}...`;
-                    overlay.style.display = 'block';
-                }
-                
-                // Fire deep link redirection
-                setTimeout(() => {
-                    window.location.href = schemeUrl;
-                }, 1300);
-            });
-        });
     }
 
     /**
@@ -1167,50 +1080,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
-            img.onload = () => {
-                // Force convert/render on canvas to export as PNG!
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
+img.onload = async () => {
+    // Render original image to a canvas and export as PNG
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const pngDataUrl = canvas.toDataURL('image/png');
 
-                // EXPORTS STRICTLY AS PNG FILE IMAGE
-                const pngDataUrl = canvas.toDataURL('image/png');
-                
-                state.uploadedSlipBase64 = pngDataUrl;
-                state.originalUploadedSlipBase64 = pngDataUrl; // Store raw clean original slip backup
-                
-                // Force file extension to be strictly png
-                const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                state.uploadedSlipName = `${baseName}_converted.png`;
+    // Store the clean original for potential re‑stamp later
+    state.originalUploadedSlipBase64 = pngDataUrl;
 
-                // Reset and populate draggable HTML badge texts/locations
-                const badge = document.getElementById('slip-interactive-badge');
-                if (badge) {
-                    const last4 = state.currentStudent.id.replace(/\D/g, '').slice(-4) || state.currentStudent.id.slice(-4);
-                    let genText = state.currentStudent.year || '-';
-                    if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
-                    document.getElementById('stamp-badge-name').textContent = `${genText} รหัส ${last4} ห้อง ${state.currentStudent.room || '-'}`;
-                    document.getElementById('stamp-badge-id').textContent = state.currentStudent.name;
-                    
-                    // Reset position strictly to top-right corner
-                    badge.style.display = 'block';
-                    badge.style.top = '2.5cqw';
-                    badge.style.left = 'auto';
-                    badge.style.right = '2.5cqw';
-                }
+    // Generate the premium headered slip using the current student's stamp info
+    try {
+        const processedBase64 = await generateHeaderedSlip(pngDataUrl, state.stampName, state.stampId);
+        state.uploadedSlipBase64 = processedBase64;
+        state.uploadedSlipName = `${file.name.substring(0, file.name.lastIndexOf('.')) || file.name}_converted.png`;
 
-                // Display Preview
-                const previewContainer = document.getElementById('slip-preview-container');
-                const previewImg = document.getElementById('slip-preview-img');
-                previewImg.src = pngDataUrl;
-                previewContainer.style.display = 'block';
-                
-                // Clear errors
-                document.getElementById('slip-error').style.display = 'none';
-            };
-            img.src = e.target.result;
+        // Update preview UI
+        const previewImg = document.getElementById('slip-preview-img');
+        previewImg.src = processedBase64;
+        document.getElementById('slip-preview-container').style.display = 'block';
+
+        // Hide the old interactive badge (no longer needed)
+        const badge = document.getElementById('slip-interactive-badge');
+        if (badge) badge.style.display = 'none';
+    } catch (err) {
+        console.error('Error generating headered slip:', err);
+        alert('❌ เกิดข้อผิดพลาดในการสร้างหัวกระดาษสลิป');
+    }
+};
+img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
@@ -1490,18 +1391,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmDelete = confirm(`⚠️ คุณแน่ใจหรือไม่ที่จะลบข้อมูลนักเรียนรหัส ${stdId} ?\nการดำเนินการนี้จะลบประวัติการชำระเงินและไฟล์สลิปของนักเรียนคนนี้ทั้งหมด!`);
             
             if (confirmDelete) {
-                await window.tuitionStore.deleteStudent(stdId);
-                
-                // Also delete their payments
-                const payments = await window.tuitionStore.getPaymentsByStudentId(stdId);
-                for (const p of payments) {
-                    const { store } = window.tuitionStore.getTransaction('payments', 'readwrite');
-                    store.delete(p.id);
+                try {
+                    // Delete all payments associated with student from Supabase first
+                    await window.tuitionStore.deletePaymentsByStudentId(stdId);
+                    
+                    // Delete student from Supabase
+                    await window.tuitionStore.deleteStudent(stdId);
+                    
+                    alert("🗑️ ลบข้อมูลนักเรียนเรียบร้อยแล้ว");
+                    document.getElementById('modal-edit-student').classList.remove('active');
+                    await notifyDbUpdate('students', stdId);
+                } catch (err) {
+                    console.error("Error deleting student:", err);
+                    alert(`❌ เกิดข้อผิดพลาดในการลบข้อมูล: ${err.message || JSON.stringify(err)}`);
                 }
-                
-                alert("🗑️ ลบข้อมูลนักเรียนเรียบร้อยแล้ว");
-                document.getElementById('modal-edit-student').classList.remove('active');
-                await notifyDbUpdate('students', stdId);
             }
         });
 
@@ -1534,15 +1437,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 student.name = document.getElementById('edit-student-name').value.trim();
 
                 if (oldId !== newId) {
-                    await window.tuitionStore.deleteStudent(oldId);
+                    // Add new student record first
                     await window.tuitionStore.addStudent(student);
                     
-                    // Update all payments to point to new ID
+                    // Update all payments to point to the new ID
                     const payments = await window.tuitionStore.getPaymentsByStudentId(oldId);
                     for (const p of payments) {
                         p.studentId = newId;
                         await window.tuitionStore.updatePayment(p);
                     }
+
+                    // Finally delete the old student record
+                    await window.tuitionStore.deleteStudent(oldId);
                 } else {
                     await window.tuitionStore.updateStudent(student);
                 }

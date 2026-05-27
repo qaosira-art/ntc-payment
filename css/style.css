@@ -1023,6 +1023,105 @@ html, body {
     }
 }
 
+/* Student card mobile responsive */
+@media (max-width: 640px) {
+    .premium-student-row-card {
+        padding: 12px 14px;
+    }
+
+    .student-card-content {
+        flex-wrap: nowrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .student-card-profile {
+        min-width: 0 !important;
+        flex: 0 0 auto;
+        gap: 8px;
+    }
+
+    .student-card-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .student-card-details {
+        overflow: hidden;
+        max-width: 105px;
+    }
+
+    .student-card-name {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .student-card-meta {
+        flex-wrap: nowrap;
+        gap: 3px;
+    }
+
+    .student-card-tag-id {
+        font-size: 9px;
+        padding: 1px 4px;
+        white-space: nowrap;
+    }
+
+    .student-card-tag-room {
+        font-size: 9px;
+        white-space: nowrap;
+    }
+
+    .student-card-progress-section {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 3px;
+        overflow: hidden;
+    }
+
+    /* Keep status and amount on ONE ROW — do NOT use column direction */
+    .student-card-progress-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        flex-wrap: nowrap;
+    }
+
+    .student-card-status-label {
+        font-size: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .student-card-amount-label {
+        font-size: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Make status badge smaller */
+    .student-card-progress-header .status-badge {
+        font-size: 9px !important;
+        padding: 1px 5px !important;
+    }
+
+    .student-card-actions {
+        flex-shrink: 0;
+    }
+
+    .btn-pay-action {
+        min-width: 0 !important;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+        height: 34px !important;
+    }
+}
+
 /* Premium Homepage Student Row Cards */
 .premium-student-row-card {
     border: 1px solid rgba(0,0,0,0.06);
@@ -1087,7 +1186,7 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="password"]:foc
     display: flex;
     align-items: center;
     gap: 16px;
-    min-width: 240px;
+    min-width: 0;
     flex: 1;
 }
 .student-card-avatar {
@@ -1145,7 +1244,7 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="password"]:foc
 }
 .student-card-progress-section {
     flex: 2;
-    min-width: 250px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;

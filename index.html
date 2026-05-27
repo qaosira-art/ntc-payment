@@ -46,13 +46,12 @@
         <!-- ============================================ -->
         <section id="view-student-auth" class="view-section">
             <div class="card-panel card-panel-glass text-center" style="max-width: 850px; margin: 40px auto 0; padding: 40px 32px;">
-                <h1 class="section-title" style="margin-bottom: 4px;">ระบบชำระค่าเล่าเรียน</h1>
-                <p class="section-subtitle" style="margin-bottom: 24px;">วิทยาลัยเทคโนโลยีนนทบุรี • ปีการศึกษา 2569</p>
+                <h1 class="section-title" style="margin-bottom: 24px;">บันทึกสลิป</h1>
                 
                 <div style="margin: 16px 0 8px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
                         <span style="height: 1px; background: var(--neutral-border); flex: 1;"></span>
-                        <span style="font-size: 14px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">รายชื่อนักเรียนและสถานะการชำระเงินค่าธรรมเนียม (ค่าเทอมทั้งหมด 60,000 บ.)</span>
+                        <span style="font-size: 14px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">สถานะการชำระค่าเทอม (ทั้งหมด 60,000 บ.)</span>
                         <span style="height: 1px; background: var(--neutral-border); flex: 1;"></span>
                     </div>
                     
@@ -168,34 +167,6 @@
                                 <p id="custom-amount-error" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-top: 6px; display: none;">กรุณากรอกจำนวนเงินไม่เกินยอดค้างชำระ</p>
                             </div>
 
-                            <!-- Bank Transfer (Krungthai Bank KTB) -->
-                            <div id="payment-content-bank" class="payment-content-section" style="margin-top: 12px;">
-                                <div class="checkout-card">
-                                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; background: white; padding: 14px; border-radius: var(--radius-sm); border: 1px solid rgba(0,0,0,0.04);">
-                                        <div style="background: #00a2e5; color: white; width: 44px; height: 44px; border-radius: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">KTB</div>
-                                        <div style="flex: 1;">
-                                            <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark);">ธนาคารกรุงไทย (KTB)</div>
-                                            <div style="font-size: 15px; font-weight: 700; color: #0080c0; display: flex; align-items: center; gap: 6px;">
-                                                <span id="txt-bank-acc">040-0-03605-3</span>
-                                                <button type="button" class="btn-copy" id="btn-copy-acc" style="background: none; border: none; color: #86868b; cursor: pointer; font-size: 12px;" title="คัดลอกเลขบัญชี">
-                                                    <i class="fa-regular fa-copy"></i>
-                                                </button>
-                                            </div>
-                                            <div style="font-size: 12px; color: #86868b; font-weight: 500; margin-top: 2px;">ชื่อบัญชี: วิทยาลัยเทคโนโลยียานยนต์</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Deep Link Action Button -->
-                                    <div style="margin: 20px 0 10px; text-align: center;">
-                                        <button type="button" class="btn-modern btn-modern-primary w-100" id="btn-open-banking-app" style="height: 52px; font-size: 16px; box-shadow: var(--shadow-md); border-radius: 26px;">
-                                            <i class="fa-solid fa-mobile-screen-button"></i> เปิดแอปธนาคารเพื่อชำระเงิน
-                                        </button>
-                                        <p style="font-size: 11px; color: #86868b; font-weight: 500; margin-top: 10px; line-height: 1.4;">
-                                            *ระบบจะคัดลอกเลขบัญชีและยอดเงินให้อัตโนมัติก่อนเปิดแอปธนาคารบนมือถือ
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Slip Drag and Drop -->
                             <div class="form-field">
@@ -213,8 +184,8 @@
                                 <div class="slip-preview-container" id="slip-preview-container" style="display: none; position: relative; user-select: none; border-radius: var(--radius); overflow: hidden; background: #f5f5f7; container-type: inline-size;">
                                      <img src="" alt="Slip Preview" class="slip-preview-img" id="slip-preview-img" style="width: 100%; display: block; height: auto;">
                                      
-                                     <!-- Static Stamp Badge Overlay (fixed strictly at top-right corner with 3 sizes larger text!) -->
-                                     <div id="slip-interactive-badge" style="position: absolute; top: 2.5cqw; right: 2.5cqw; background: rgba(255, 255, 255, 0.96); border: clamp(1px, 0.25cqw, 2px) solid rgba(0, 102, 204, 0.25); border-radius: clamp(6px, 2cqw, 12px); padding: clamp(10px, 3.2cqw, 18px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); text-align: center; z-index: 10; font-family: 'Noto Sans Thai', sans-serif; pointer-events: none; width: 65cqw; max-width: 370px; transition: border-color 0.2s ease;">
+                                     <!-- Static Stamp Badge Overlay (Hidden since we now use canvas-level Top Header Zone) -->
+                                     <div id="slip-interactive-badge" style="display: none !important;">
                                          <div style="font-weight: 700; font-size: clamp(12px, 3.5cqw, 18px); color: #555; line-height: 1.4; white-space: nowrap;" id="stamp-badge-name">รุ่น 21 รหัส 0000 ห้อง 1/1</div>
                                          <div style="font-weight: 800; font-size: clamp(14px, 4.2cqw, 22px); color: #1d1d1f; line-height: 1.35; margin-top: clamp(2px, 0.6cqw, 4px);" id="stamp-badge-id">ชื่อ - นามสกุล</div>
                                          <div style="display:none;" id="stamp-badge-room"></div>
@@ -226,8 +197,9 @@
                                     </button>
                                     
                                     <div id="stamp-button-container" style="margin-top: 12px; text-align: center; padding: 0 16px 12px;">
+                                        <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="fa-solid fa-circle-info"></i> ระบบได้เพิ่มแถบระบุตัวตนของคุณไว้ที่ด้านบนสุดของสลิปโดยอัตโนมัติ (ไม่บังข้อมูลสำคัญ)</div>
                                         <button type="button" class="btn-modern btn-modern-secondary btn-modern-sm w-100" id="btn-open-stamp-modal" style="border-color: var(--accent); color: var(--accent); background: rgba(0, 113, 227, 0.04); font-weight: 700; height: 42px; font-size: 13px;">
-                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูลพิมพ์ทับสลิป
+                                            <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูลหัวกระดาษสลิป
                                         </button>
                                     </div>
                                 </div>
@@ -645,83 +617,6 @@
         </div>
     </div>
 
-
-    <!-- ============================================ -->
-    <!-- MODAL: SELECT BANK MOBILE APP DEEP LINK       -->
-    <!-- ============================================ -->
-    <div class="premium-modal" id="modal-select-bank">
-        <div class="premium-modal-content" style="max-width: 420px; padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: var(--neutral-dark); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-mobile-screen-button" style="color: var(--primary);"></i> เลือกแอปธนาคารมือถือ
-                </h3>
-                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-bank-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            
-            <p style="font-size: 13px; color: #86868b; margin-bottom: 16px; line-height: 1.5;">
-                ระบบจะคัดลอกเลขบัญชี <strong>040-0-03605-3</strong> และยอดโอนเงินไปยังคลิปบอร์ดของคุณโดยอัตโนมัติก่อนเด้งเปิดแอปธนาคารบนมือถือเพื่อทำรายการโอน
-            </p>
-
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Krungthai NEXT -->
-                <button class="bank-app-btn" data-bank="Krungthai NEXT" data-scheme="krungthaicb://" style="background: #eef9ff; border: 1.5px solid #c2e9ff; color: #005c97; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    <div style="background: #00a2e5; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">KTB</div>
-                    <div style="flex: 1;">
-                        <div>Krungthai NEXT</div>
-                        <div style="font-size: 11px; font-weight: 500; color: #519bc9;">เปิดแอปธนาคารกรุงไทย</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
-                </button>
-
-                <!-- K PLUS -->
-                <button class="bank-app-btn" data-bank="K PLUS" data-scheme="kplus://" style="background: #f1faf3; border: 1.5px solid #d0f0d6; color: #138030; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    <div style="background: #138030; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">KBANK</div>
-                    <div style="flex: 1;">
-                        <div>K PLUS</div>
-                        <div style="font-size: 11px; font-weight: 500; color: #21a947;">เปิดแอปธนาคารกสิกรไทย</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
-                </button>
-
-                <!-- SCB EASY -->
-                <button class="bank-app-btn" data-bank="SCB EASY" data-scheme="scbeasy://" style="background: #f6f2fb; border: 1.5px solid #e7daf6; color: #4e2a84; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    <div style="background: #4e2a84; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SCB</div>
-                    <div style="flex: 1;">
-                        <div>SCB EASY</div>
-                        <div style="font-size: 11px; font-weight: 500; color: #8e62c9;">เปิดแอปธนาคารไทยพาณิชย์</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
-                </button>
-
-                <!-- Bualuang mBanking -->
-                <button class="bank-app-btn" data-bank="Bualuang mBanking" data-scheme="mbanking://" style="background: #eff3f9; border: 1.5px solid #cce0ff; color: #0033a0; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    <div style="background: #0033a0; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">BBL</div>
-                    <div style="flex: 1;">
-                        <div>Bualuang mBanking</div>
-                        <div style="font-size: 11px; font-weight: 500; color: #5185ea;">เปิดแอปธนาคารกรุงเทพ</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
-                </button>
-
-                <!-- ttb touch -->
-                <button class="bank-app-btn" data-bank="ttb touch" data-scheme="ttbtouch://" style="background: #fff8f0; border: 1.5px solid #ffe8cc; color: #f25f22; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px; border-radius: var(--radius-sm); text-align: left; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    <div style="background: #f25f22; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">TTB</div>
-                    <div style="flex: 1;">
-                        <div>ttb touch</div>
-                        <div style="font-size: 11px; font-weight: 500; color: #fa8f64;">เปิดแอปธนาคารทหารไทยธนชาต</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; opacity: 0.5;"></i>
-                </button>
-            </div>
-            
-            <div id="bank-overlay-notice" style="display: none; margin-top: 16px; background: rgba(0,0,0,0.04); border-radius: var(--radius-sm); padding: 12px; text-align: center; animation: fadeIn 0.3s;">
-                <span class="pulse-indicator" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 6px; animation: pulse 1.5s infinite;"></span>
-                <span id="bank-overlay-text" style="font-size: 12px; font-weight: 700; color: var(--success-text);"></span>
-            </div>
-        </div>
-    </div>
 
 
     <!-- ============================================ -->
