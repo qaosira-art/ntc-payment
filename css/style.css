@@ -296,6 +296,7 @@ html, body {
     position: relative;
     width: 140px;
     height: 140px;
+    flex-shrink: 0;
 }
 
 .progress-ring-circle {
@@ -991,9 +992,10 @@ html, body {
     }
     
     .ledger-container {
-        flex-direction: column;
-        text-align: center;
-        gap: 20px;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        text-align: left;
     }
     
     .slip-inspector-panel {
@@ -1002,8 +1004,16 @@ html, body {
 }
 
 @media (max-width: 600px) {
+    html, body {
+        overflow-x: hidden !important;
+        position: relative;
+        width: 100% !important;
+        max-width: 100% !important;
+        touch-action: pan-y !important;
+    }
+    
     .header-container {
-        padding: 0 16px;
+        padding: 0 12px;
     }
     
     .logo-text {
@@ -1015,11 +1025,113 @@ html, body {
     }
     
     .main-content {
-        padding: 24px 16px;
+        padding: 12px 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
     }
     
     .card-panel {
-        padding: 20px;
+        padding: 20px 14px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        border-radius: 16px !important;
+    }
+
+    .student-hero-banner {
+        padding: 28px 14px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        border-radius: 16px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .student-hero-profile {
+        gap: 12px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    .student-hero-avatar {
+        width: 52px !important;
+        height: 52px !important;
+        font-size: 24px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .student-hero-info {
+        min-width: 0 !important;
+    }
+    
+    .student-hero-info h2 {
+        font-size: 15px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .student-hero-info p {
+        font-size: 10px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .student-hero-banner .text-right {
+        flex-shrink: 0 !important;
+    }
+
+    .student-hero-banner .status-badge {
+        font-size: 9px !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    .progress-ring-wrapper {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    .progress-ring-val {
+        font-size: 18px !important;
+    }
+    
+    .progress-ring-lbl {
+        font-size: 9px !important;
+    }
+
+    .ledger-details {
+        gap: 8px !important;
+    }
+    
+    .ledger-lbl {
+        font-size: 11px !important;
+    }
+    
+    .ledger-val {
+        font-size: 13px !important;
+    }
+    
+    .ledger-remaining-row {
+        padding-top: 6px !important;
+    }
+    
+    .ledger-remaining-row .ledger-lbl {
+        font-size: 12px !important;
+    }
+    
+    .ledger-remaining-row .ledger-val {
+        font-size: 14px !important;
     }
 }
 

@@ -1961,13 +1961,52 @@ img.src = e.target.result;
             }
         }
 
+        // Make modal-content transparent — slip floats over blurred backdrop
+        const modalContent = document.querySelector('#modal-receipt .premium-modal-content');
+        if (modalContent) {
+            modalContent.style.background = 'transparent';
+            modalContent.style.border = 'none';
+            modalContent.style.boxShadow = 'none';
+            modalContent.style.padding = '0';
+        }
+
+        // Also make the close button float visibly over the slip
+        const closeBtn = document.getElementById('btn-close-receipt-modal');
+        if (closeBtn) {
+            closeBtn.style.background = 'rgba(0,0,0,0.55)';
+            closeBtn.style.color = '#fff';
+            closeBtn.style.border = 'none';
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.top = '-12px';
+            closeBtn.style.right = '-12px';
+            closeBtn.style.zIndex = '10';
+        }
+        if (modalContent) modalContent.style.position = 'relative';
+
         // Open Receipt Modal
         const modal = document.getElementById('modal-receipt');
         modal.classList.add('active');
 
-        // Modal close button
+        // Modal close button — restore styles on close
         document.getElementById('btn-close-receipt-modal').onclick = () => {
             modal.classList.remove('active');
+            // Restore modal-content styles for next use
+            if (modalContent) {
+                modalContent.style.background = '';
+                modalContent.style.border = '';
+                modalContent.style.boxShadow = '';
+                modalContent.style.padding = '';
+                modalContent.style.position = '';
+            }
+            if (closeBtn) {
+                closeBtn.style.background = '';
+                closeBtn.style.color = '';
+                closeBtn.style.border = '';
+                closeBtn.style.position = '';
+                closeBtn.style.top = '';
+                closeBtn.style.right = '';
+                closeBtn.style.zIndex = '';
+            }
         };
     }
 
