@@ -2120,11 +2120,15 @@ html.no-scroll, body.no-scroll {
         display: none;
     }
     
-    /* Squeeze table to fit all 6 columns on mobile without scrolling */
+    /* Squeeze table to fit all columns on mobile without scrolling */
     .premium-table-container {
-        overflow-x: hidden !important;
+        overflow-x: visible !important;
         padding-bottom: 0px;
-        zoom: 0.78; /* Scale down the entire table by 22% to guarantee it fits */
+        width: 100% !important;
+    }
+
+    .premium-table {
+        zoom: 0.76; /* Scale down the table to fit perfectly */
         width: 100%;
     }
 
