@@ -2172,6 +2172,14 @@ input.pin-box:focus {
     box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15) !important;
 }
 
+/* Fix for mobile keyboard pushing PIN modal off screen */
+@media (max-width: 768px) {
+    #modal-student-pin {
+        align-items: flex-start;
+        padding-top: 12vh;
+    }
+}
+
 @keyframes shake {
     10%, 90% { transform: translate3d(-1px, 0, 0); }
     20%, 80% { transform: translate3d(2px, 0, 0); }
