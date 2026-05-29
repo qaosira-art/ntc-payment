@@ -2122,22 +2122,31 @@ html.no-scroll, body.no-scroll {
     
     /* Squeeze table to fit all columns on mobile without scrolling */
     .premium-table-container {
-        overflow-x: visible !important;
+        overflow-x: hidden !important;
         padding-bottom: 0px;
         width: 100% !important;
     }
 
     .premium-table {
-        zoom: 0.76; /* Scale down the table to fit perfectly */
-        width: 100%;
+        table-layout: fixed !important;
+        width: 100% !important;
     }
 
     .premium-table th,
     .premium-table td {
         padding: 4px 2px !important;
-        font-size: 11px !important;
+        font-size: 10px !important;
         white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
+
+    /* Allocate specific percentages to fit perfectly */
+    .premium-table th:nth-child(1), .premium-table td:nth-child(1) { width: 26%; } /* นักเรียน */
+    .premium-table th:nth-child(2), .premium-table td:nth-child(2) { width: 22%; } /* ยอดโอน */
+    .premium-table th:nth-child(3), .premium-table td:nth-child(3) { width: 20%; } /* วันที่ */
+    .premium-table th:nth-child(4), .premium-table td:nth-child(4) { width: 20%; } /* สถานะ */
+    .premium-table th:nth-child(5), .premium-table td:nth-child(5) { width: 12%; text-align: center; } /* จัดการ */
     
     .premium-table .status-badge {
         font-size: 10px !important;
