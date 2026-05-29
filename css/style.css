@@ -2106,50 +2106,43 @@ html.no-scroll, body.no-scroll {
         position: relative;
     }
 
-    /* Button compact on mobile */
-    /* Button ultra-compact on mobile */
+    /* Button ultra-compact on mobile, showing full text but very small */
     .btn-admin-inspect,
     .btn-admin-view-slip {
-        font-size: 10px !important;
+        font-size: 8px !important;
         padding: 4px 6px !important;
-        min-width: 28px !important;
     }
     
-    /* Hide text inside action buttons on mobile to save space */
+    /* Show text inside action buttons on mobile as requested */
     .hide-text-mobile {
-        display: none;
+        display: inline;
     }
     
-    /* Squeeze table to fit all columns on mobile without scrolling */
+    /* Squeeze table to fit all columns on mobile by using negative margins and tiny text */
     .premium-table-container {
-        overflow-x: hidden !important;
-        padding-bottom: 0px;
-        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        margin-left: -10px !important;
+        margin-right: -10px !important;
+        width: calc(100% + 20px) !important;
     }
 
     .premium-table {
-        table-layout: fixed !important;
+        table-layout: auto !important;
         width: 100% !important;
+        min-width: 0 !important;
     }
 
     .premium-table th,
     .premium-table td {
-        padding: 4px 2px !important;
-        font-size: 10px !important;
+        padding: 6px 2px !important;
+        font-size: 8px !important;
         white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
     }
-
-    /* Allocate specific percentages to fit perfectly */
-    .premium-table th:nth-child(1), .premium-table td:nth-child(1) { width: 26%; } /* นักเรียน */
-    .premium-table th:nth-child(2), .premium-table td:nth-child(2) { width: 22%; } /* ยอดโอน */
-    .premium-table th:nth-child(3), .premium-table td:nth-child(3) { width: 20%; } /* วันที่ */
-    .premium-table th:nth-child(4), .premium-table td:nth-child(4) { width: 20%; } /* สถานะ */
-    .premium-table th:nth-child(5), .premium-table td:nth-child(5) { width: 12%; text-align: center; } /* จัดการ */
     
     .premium-table .status-badge {
-        font-size: 10px !important;
+        font-size: 8px !important;
         padding: 2px 4px !important;
     }
 }
