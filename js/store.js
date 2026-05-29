@@ -62,13 +62,31 @@ class TuitionStore {
 
     async getStudents() {
         const cached = this._getCached('students');
-        if (cached) return cached;
+        if (cached) {
+            // Apply local avatar overrides
+            cached.forEach(student => {
+                const localAvatar = localStorage.getItem(`tuition_avatar_${student.id}`);
+                if (localAvatar) {
+                    student.avatar = localAvatar;
+                }
+            });
+            return cached;
+        }
 
         const { data, error } = await this.supabase
             .from('students')
             .select('*');
         if (error) throw error;
         const result = data || [];
+        
+        // Apply local avatar overrides
+        result.forEach(student => {
+            const localAvatar = localStorage.getItem(`tuition_avatar_${student.id}`);
+            if (localAvatar) {
+                student.avatar = localAvatar;
+            }
+        });
+
         this._setCache('students', result);
         return result;
     }
@@ -83,6 +101,13 @@ class TuitionStore {
         // Supabase returns an error for single() if 0 rows are found, which is annoying. Let's catch it.
         if (error && error.code === 'PGRST116') return null; 
         if (error) throw error;
+
+        if (data) {
+            const localAvatar = localStorage.getItem(`tuition_avatar_${id}`);
+            if (localAvatar) {
+                data.avatar = localAvatar;
+            }
+        }
         return data;
     }
 
@@ -92,7 +117,19 @@ class TuitionStore {
             .insert([student])
             .select()
             .single();
-        if (error) throw error;
+        if (error) {
+            // Check if column mismatch error (postgrest PGRST102)
+            if (error.code === 'PGRST102' || error.message.includes('funding')) {
+                console.warn("Database schema is missing 'funding' column. Falling back to name suffixing...");
+                const { funding, ...fallbackStudent } = student;
+                let cleanName = student.name || '';
+                if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
+                else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
+                fallbackStudent.name = `${cleanName} (${student.funding || 'จ่ายเอง'})`;
+                return this.addStudent(fallbackStudent);
+            }
+            throw error;
+        }
         this.invalidateCache('students');
         return data;
     }
@@ -105,7 +142,27 @@ class TuitionStore {
             .eq('id', id)
             .select()
             .single();
-        if (error) throw error;
+        if (error) {
+            // Check if column mismatch error (postgrest PGRST102)
+            if (error.code === 'PGRST102' || error.message.includes('funding')) {
+                console.warn("Database schema is missing 'funding' column. Falling back to name suffixing...");
+                const { funding, ...fallbackData } = updateData;
+                let cleanName = student.name || '';
+                if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
+                else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
+                fallbackData.name = `${cleanName} (${student.funding || 'จ่ายเอง'})`;
+                const { data: retryData, error: retryError } = await this.supabase
+                    .from('students')
+                    .update(fallbackData)
+                    .eq('id', id)
+                    .select()
+                    .single();
+                if (retryError) throw retryError;
+                this.invalidateCache('students');
+                return retryData || student;
+            }
+            throw error;
+        }
         this.invalidateCache('students');
         return data || student;
     }

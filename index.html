@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบชำระค่าธรรมเนียมการศึกษา - วิทยาลัยเทคโนโลยีนนทบุรี</title>
-    <link rel="stylesheet" href="css/style.css?v=2">
+    <link rel="stylesheet" href="css/style.css?v=9">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lottie Player Script -->
@@ -28,13 +28,35 @@
             </a>
             
             <nav class="nav-links">
-                <button class="nav-tab active" id="tab-student-portal" data-target="view-student-auth">
-                    <i class="fa-solid fa-user-gradient fa-user"></i> สำหรับนักเรียน
-                </button>
-                <button class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth">
-                    <i class="fa-solid fa-shield-halved"></i> สำหรับเจ้าหน้าที่ (Admin)
-                </button>
+                <a href="#" class="nav-tab active" id="tab-student-portal" data-target="view-student-auth"><i class="fa-solid fa-user-graduate"></i> นักศึกษา</a>
+                <a href="#" class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth"><i class="fa-solid fa-user-tie"></i> ที่ปรึกษา</a>
             </nav>
+
+            <!-- Hamburger button (mobile only) -->
+            <button class="hamburger-btn" id="btn-hamburger" aria-label="เมนู">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <!-- Mobile dropdown menu -->
+        <div class="mobile-nav-dropdown" id="mobile-nav-dropdown">
+            <button class="mobile-nav-item active" id="mob-tab-student">
+                <div class="mobile-nav-icon"><i class="fa-solid fa-user-graduate"></i></div>
+                <div class="mobile-nav-details">
+                    <span class="mobile-nav-title">นักศึกษา</span>
+                    <span class="mobile-nav-subtitle">ชำระค่าเล่าเรียน / บันทึกสลิป</span>
+                </div>
+            </button>
+            <div class="mobile-nav-divider"></div>
+            <button class="mobile-nav-item" id="mob-tab-admin">
+                <div class="mobile-nav-icon"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="mobile-nav-details">
+                    <span class="mobile-nav-title">ที่ปรึกษา</span>
+                    <span class="mobile-nav-subtitle">ตรวจสอบหลักฐาน / จัดการข้อมูล</span>
+                </div>
+            </button>
         </div>
     </header>
 
@@ -67,12 +89,7 @@
         <!-- VIEW 2: STUDENT PORTAL DASHBOARD             -->
         <!-- ============================================ -->
         <section id="view-student-portal" class="view-section hidden">
-            <!-- Back to Login Button -->
-            <div style="margin-bottom: 24px;">
-                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-student-logout">
-                    <i class="fa-solid fa-arrow-left"></i> ย้อนกลับ
-                </button>
-            </div>
+
 
             <div style="max-width: 640px; margin: 0 auto;">
                 <!-- All content centered -->
@@ -94,9 +111,7 @@
                                 <p id="student-display-meta">รหัส: STD002 • ชั้นปีที่ 1 ห้อง 2</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span class="status-badge" id="student-status-badge" style="box-shadow: 0 8px 20px rgba(0,0,0,0.15);">ชำระแล้วบางส่วน</span>
-                        </div>
+
                     </div>
 
                     <!-- Payment Status Ledger -->
@@ -117,18 +132,18 @@
                                 </div>
                             </div>
                             
-                            <div class="ledger-details" style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
-                                <div class="ledger-row" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="ledger-lbl" style="font-size: 13px; color: #86868b; font-weight: 600;">ค่าเล่าเรียนทั้งหมด</span>
-                                    <span class="ledger-val" style="font-size: 15px; font-weight: 700;" id="ledger-total-fee">60,000 THB</span>
+                            <div class="ledger-details">
+                                <div class="ledger-row">
+                                    <span class="ledger-lbl">ค่าเล่าเรียนทั้งหมด</span>
+                                    <span class="ledger-val" id="ledger-total-fee">60,000 THB</span>
                                 </div>
-                                <div class="ledger-row" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="ledger-lbl" style="font-size: 13px; color: var(--success-text); font-weight: 600;">ชำระแล้ว</span>
-                                    <span class="ledger-val" style="font-size: 15px; font-weight: 700; color: var(--success);" id="ledger-paid-fee">20,000 THB</span>
+                                <div class="ledger-row">
+                                    <span class="ledger-lbl ledger-lbl-success">ชำระแล้ว</span>
+                                    <span class="ledger-val ledger-val-success" id="ledger-paid-fee">20,000 THB</span>
                                 </div>
-                                <div class="ledger-row ledger-remaining-row" style="border-top: 1px solid var(--neutral-border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="ledger-lbl" style="font-size: 14px; font-weight: 700;">ยอดค้างชำระ</span>
-                                    <span class="ledger-val" style="font-size: 16px; font-weight: 800; color: var(--danger);" id="ledger-remaining-fee">40,000 THB</span>
+                                <div class="ledger-row ledger-remaining-row">
+                                    <span class="ledger-lbl">ยอดค้างชำระ</span>
+                                    <span class="ledger-val" id="ledger-remaining-fee">40,000 THB</span>
                                 </div>
                             </div>
                         </div>
@@ -136,9 +151,14 @@
 
                     <!-- Payment Timeline / Receipt History (Moved to Left Panel) -->
                     <div class="card-panel">
-                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> ประวัติรายการชำระเงิน
-                        </h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> ประวัติรายการชำระเงิน
+                            </h3>
+                            <button id="btn-view-all-slips" class="btn-modern-icon" title="ดูสลิปทั้งหมด" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(0, 102, 204, 0.08); border: none; cursor: pointer; color: var(--primary); font-size: 18px; transition: all 0.2s ease;">
+                                <i class="fa-solid fa-images"></i>
+                            </button>
+                        </div>
                         
                         <div id="payment-timeline-container" class="timeline" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
                             <!-- Payment nodes rendered here dynamically -->
@@ -296,10 +316,10 @@
                         <table class="premium-table">
                             <thead>
                                 <tr>
+                                    <th>ชำระเงิน</th>
                                     <th>นักเรียน</th>
                                     <th>ยอดโอนแจ้ง</th>
                                     <th>วันที่ส่ง</th>
-                                    <th>สลิปไฟล์ (.png)</th>
                                     <th>สถานะ</th>
                                     <th style="text-align: center;">จัดการ</th>
                                 </tr>
@@ -341,6 +361,7 @@
                         <table class="premium-table">
                             <thead>
                                 <tr>
+                                    <th style="text-align: center;">ชำระเงิน</th>
                                     <th style="text-align: center;">รุ่น</th>
                                     <th style="text-align: center;">รหัสนักเรียน</th>
                                     <th style="text-align: center;">ห้อง</th>
@@ -442,6 +463,13 @@
             
             <form id="form-admin-add-student">
                 <div class="form-field">
+                    <label for="add-student-funding">รูปแบบการชำระเงิน</label>
+                    <select id="add-student-funding" required>
+                        <option value="จ่ายเอง" selected>จ่ายเอง</option>
+                        <option value="กยศ">กยศ</option>
+                    </select>
+                </div>
+                <div class="form-field">
                     <label for="add-student-generation">รุ่น</label>
                     <input type="text" id="add-student-generation" placeholder="ตัวอย่าง: รุ่น21" required>
                 </div>
@@ -485,6 +513,13 @@
             
             <form id="form-admin-edit-student">
                 <input type="hidden" id="edit-student-old-id">
+                <div class="form-field">
+                    <label for="edit-student-funding">รูปแบบการชำระเงิน</label>
+                    <select id="edit-student-funding" required>
+                        <option value="จ่ายเอง">จ่ายเอง</option>
+                        <option value="กยศ">กยศ</option>
+                    </select>
+                </div>
                 <div class="form-field">
                     <label for="edit-student-generation">รุ่น</label>
                     <input type="text" id="edit-student-generation" placeholder="ตัวอย่าง: รุ่น21" required>
@@ -611,6 +646,74 @@
         </div>
     </div>
 
+
+
+    <!-- ============================================ -->
+    <!-- MODAL: VIEW ALL SLIPS (STUDENT VIEW)         -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-student-slips">
+        <div class="premium-modal-content" style="width: 90%; max-width: 620px; padding: 24px; border-radius: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1.5px solid var(--neutral-border); padding-bottom: 12px;">
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--neutral-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-images" style="color: var(--primary);"></i> สลิปการชำระเงินทั้งหมดของคุณ
+                </h3>
+                <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-student-slips-modal" style="width: 28px; height: 28px; padding:0; border-radius:50%;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div id="student-slips-container" style="max-height: 65vh; overflow-y: auto; padding-right: 4px;">
+                <!-- Empty state -->
+                <div id="student-slips-empty-state" style="text-align: center; padding: 48px 24px; display: none;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🖼️</div>
+                    <p style="color: #86868b; font-weight: 600;">ยังไม่มีประวัติการอัปโหลดสลิป</p>
+                </div>
+                
+                <!-- Grid of slips -->
+                <div id="student-slips-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+                    <!-- Slip items rendered dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================ -->
+    <!-- MODAL: CROP/ADJUST PROFILE PICTURE           -->
+    <!-- ============================================ -->
+    <div class="premium-modal" id="modal-crop-profile" style="z-index: 1200;">
+        <div class="premium-modal-content" style="width: 90%; max-width: 420px; padding: 24px; border-radius: 24px; background: #1c1c1e; color: #ffffff;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; text-align: center;">
+                <i class="fa-solid fa-crop-simple" style="color: var(--primary); font-size: 18px;"></i>
+                <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin: 0;">ปรับตำแหน่งรูปโปรไฟล์</h3>
+            </div>
+            
+            <!-- Crop Viewport Container -->
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
+                <div id="crop-viewport-wrapper" style="width: 280px; height: 280px; border-radius: 50%; overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 0 2px rgba(255,255,255,0.2);">
+                    <img id="crop-preview-img" src="" style="position: absolute; transform-origin: 0 0; cursor: move; max-width: none; max-height: none;" alt="Preview">
+                </div>
+            </div>
+            
+            <!-- Zoom Slider Control -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 0 16px;">
+                <i class="fa-solid fa-magnifying-glass" style="color: #8e8e93; font-size: 14px;"></i>
+                <input type="range" id="crop-zoom-range" min="1" max="4" step="0.01" value="1" style="flex: 1; height: 4px; border-radius: 2px; background: #3a3a3c; outline: none; cursor: pointer; -webkit-appearance: none;">
+                <i class="fa-solid fa-magnifying-glass-plus" style="color: #8e8e93; font-size: 14px;"></i>
+            </div>
+            
+            <!-- Footer Actions -->
+            <div style="display: flex; gap: 12px;">
+                <button type="button" class="btn-modern" id="btn-cancel-crop" style="flex: 1; height: 48px; border-radius: 14px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #ffffff; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s;">
+                    ยกเลิก
+                </button>
+                <button type="button" class="btn-modern btn-modern-primary" id="btn-save-crop" style="flex: 2; height: 48px; border-radius: 14px; background: #0066cc; border: none; color: #ffffff; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                    <i class="fa-solid fa-check"></i> บันทึกรูป
+                </button>
+            </div>
+        </div>
+    </div>
 
 
     <!-- ============================================ -->

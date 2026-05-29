@@ -5,6 +5,26 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Helper functions for parsing funding information from name if column missing
+    function getCleanName(fullName) {
+        if (!fullName) return '';
+        if (fullName.endsWith('(กยศ)')) {
+            return fullName.slice(0, -6).trim();
+        }
+        if (fullName.endsWith('(จ่ายเอง)')) {
+            return fullName.slice(0, -10).trim();
+        }
+        return fullName;
+    }
+
+    function getFundingText(student) {
+        if (!student) return 'จ่ายเอง';
+        if (student.funding) return student.funding;
+        const name = student.name || '';
+        if (name.endsWith('(กยศ)')) return 'กยศ';
+        return 'จ่ายเอง';
+    }
+
     // Current Application State
     const state = {
         currentStudent: null,
@@ -171,6 +191,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function setupModalScrollObserver() {
+        const checkScrollLock = () => {
+            const modals = document.querySelectorAll('.premium-modal, .modal-backdrop, .slip-inspector-panel');
+            const anyActive = Array.from(modals).some(m => {
+                return m.classList.contains('active') || m.style.display === 'flex' || m.style.display === 'block';
+            });
+            if (anyActive) {
+                document.documentElement.classList.add('no-scroll');
+                document.body.classList.add('no-scroll');
+            } else {
+                document.documentElement.classList.remove('no-scroll');
+                document.body.classList.remove('no-scroll');
+            }
+        };
+
+        const observer = new MutationObserver((mutations) => {
+            checkScrollLock();
+        });
+
+        const modals = document.querySelectorAll('.premium-modal, .modal-backdrop, .slip-inspector-panel');
+        modals.forEach(m => {
+            observer.observe(m, {
+                attributes: true,
+                attributeFilter: ['class', 'style']
+            });
+        });
+
+        // Run once initially
+        checkScrollLock();
+    }
+
     async function initApp() {
         try {
             // 1. Initialize DB Store
@@ -195,6 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // 7. Setup Avatar Upload
             setupAvatarUpload();
 
+            // 7.5 Setup Slips Gallery
+            setupStudentSlipsGallery();
+
+            // 7.6 Setup Modal Scroll Observer
+            setupModalScrollObserver();
+
             // 8. Preload Lottie success checkmark to bypass local file CORS boundaries
             try {
                 const lottiePlayer = document.getElementById('lottie-success-player');
@@ -218,6 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     function setupNavigation() {
         const tabs = document.querySelectorAll('.app-header .nav-tab');
+        const hamburger = document.getElementById('btn-hamburger');
+        const mobileDropdown = document.getElementById('mobile-nav-dropdown');
+
+        function closeMobileMenu() {
+            if (mobileDropdown) mobileDropdown.classList.remove('open');
+            if (hamburger) hamburger.classList.remove('open');
+        }
+
         tabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -252,13 +317,71 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Logo click goes home / student auth
+        // Hamburger toggle
+        if (hamburger && mobileDropdown) {
+            hamburger.addEventListener('click', e => {
+                e.stopPropagation();
+                hamburger.classList.toggle('open');
+                mobileDropdown.classList.toggle('open');
+            });
+            document.addEventListener('click', e => {
+                if (!mobileDropdown.contains(e.target) && e.target !== hamburger) {
+                    closeMobileMenu();
+                }
+            });
+        }
+
+        // Mobile nav items
+        function handleMobileNav(targetView, mobId) {
+            closeMobileMenu();
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-item').forEach(m => m.classList.remove('active'));
+            const mobItem = document.getElementById(mobId);
+            if (mobItem) mobItem.classList.add('active');
+            
+            if (targetView === 'view-student-auth') {
+                const tabStudent = document.getElementById('tab-student-portal');
+                if (tabStudent) tabStudent.classList.add('active');
+                if (state.currentStudent) {
+                    switchView('view-student-portal');
+                    refreshStudentDashboard();
+                    return;
+                }
+            } else if (targetView === 'view-admin-auth') {
+                const tabAdmin = document.getElementById('tab-admin-portal');
+                if (tabAdmin) tabAdmin.classList.add('active');
+                if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+                    switchView('view-admin-portal');
+                    updateAdminDashboard();
+                    return;
+                }
+            }
+            switchView(targetView);
+        }
+
+        const mobTabStudent = document.getElementById('mob-tab-student');
+        const mobTabAdmin = document.getElementById('mob-tab-admin');
+        if (mobTabStudent) {
+            mobTabStudent.addEventListener('click', () => handleMobileNav('view-student-auth', 'mob-tab-student'));
+        }
+        if (mobTabAdmin) {
+            mobTabAdmin.addEventListener('click', () => handleMobileNav('view-admin-auth', 'mob-tab-admin'));
+        }
+
+        // Logo click goes home / student auth or logs out student if logged in (acting as back button)
         document.getElementById('btn-logo-home').addEventListener('click', (e) => {
             e.preventDefault();
+            closeMobileMenu();
             if (state.currentStudent) {
-                switchView('view-student-portal');
+                state.currentStudent = null;
+                sessionStorage.removeItem('currentStudentId');
+                resetPaymentForm();
+                if (state.timerInterval) clearInterval(state.timerInterval);
+                renderStudentMockGrid();
+                switchView('view-student-auth');
             } else {
-                document.getElementById('tab-student-portal').click();
+                const tabStudent = document.getElementById('tab-student-portal');
+                if (tabStudent) tabStudent.click();
             }
         });
     }
@@ -296,47 +419,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'premium-student-row-card';
             
+            const fundingText = getFundingText(student);
             let statusText = '';
             let badgeClass = '';
             if (student.status === 'paid') {
                 statusText = 'จ่ายครบแล้ว';
                 badgeClass = 'badge-paid';
-            } else if (student.status === 'installment') {
-                statusText = 'ค้างจ่ายบางส่วน';
-                badgeClass = 'badge-pending';
-            } else if (student.status === 'pending') {
-                statusText = 'รอตรวจสลิป';
-                badgeClass = 'badge-pending';
-            } else if (student.status === 'rejected') {
-                statusText = 'สลิปถูกปฏิเสธ';
-                badgeClass = 'badge-rejected';
             } else {
-                statusText = 'ยังไม่ได้ชำระ';
-                badgeClass = 'badge-unpaid';
+                statusText = fundingText;
+                badgeClass = fundingText === 'กยศ' ? 'badge-gys' : 'badge-self';
             }
 
             // Calculate paid percentage (หลอดแสดงผล)
             const progressPct = Math.min(100, Math.round((student.paidAmount / student.totalTuition) * 100));
-            const progressBarColor = progressPct >= 100 
-                ? 'var(--success)' 
-                : 'linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)';
-
-            const remaining = student.totalTuition - student.paidAmount;
-
-            let actionBtnHtml = '';
-            if (remaining > 0) {
-                actionBtnHtml = `
-                    <button class="btn-modern btn-modern-primary btn-modern-sm btn-pay-action" style="min-width: 110px; font-weight: 700;">
-                        <i class="fa-solid fa-credit-card"></i> ชำระเงิน
-                    </button>
-                `;
-            } else {
-                actionBtnHtml = `
-                    <button class="btn-modern btn-modern-sm btn-pay-action" style="min-width: 110px; font-weight: 700; background: var(--success); color: white; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2);">
-                        <i class="fa-solid fa-receipt"></i> ดูใบเสร็จ
-                    </button>
-                `;
-            }
+            const displayId = student.id;
+            const cleanName = getCleanName(student.name);
 
             card.innerHTML = `
                 <div class="student-card-content">
@@ -346,9 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img src="${student.avatar || 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0'}" alt="Avatar">
                         </div>
                         <div class="student-card-details">
-                            <div class="student-card-name">${student.name}</div>
+                            <div class="student-card-name">${cleanName}</div>
                             <div class="student-card-meta">
-                                <span class="student-card-tag-id">ID: ${student.id}</span>
+                                <span class="student-card-tag-id">ID: ${displayId}</span>
                             </div>
                         </div>
                     </div>
@@ -356,18 +453,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- Center Section: Progress Bar (หลอดแสดงผลชำระเงิน) -->
                     <div class="student-card-progress-section">
                         <div class="student-card-progress-header">
-                            <span class="student-card-status-label">สถานะ: <span class="status-badge ${badgeClass}" style="padding: 2px 8px; font-size: 10.5px; vertical-align: middle;">${statusText}</span></span>
-                            <span class="student-card-amount-label">ชำระแล้ว ${student.paidAmount.toLocaleString()} / ${student.totalTuition.toLocaleString()} บ.</span>
+                            <span class="student-card-status-label">สถานะ <span class="status-badge ${badgeClass}" style="padding: 2px 8px; font-size: 10.5px; vertical-align: middle;">${statusText}</span></span>
+                            <span class="student-card-amount-label">${student.paidAmount.toLocaleString()} / ${student.totalTuition.toLocaleString()} บ.</span>
                         </div>
                         <!-- Progress Bar (หลอดแสดง) -->
                         <div class="student-card-progress-bar-bg">
                             <div class="student-card-progress-bar-fill ${student.status === 'paid' ? 'progress-rainbow' : ''}" style="width: ${progressPct}%;"></div>
                         </div>
-                    </div>
-                    
-                    <!-- Right Section: Action Pay Button -->
-                    <div class="student-card-actions">
-                        ${actionBtnHtml}
                     </div>
                 </div>
             `;
@@ -381,29 +473,317 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle avatar image upload
+    // Handle avatar image upload with interactive crop and position adjustments
     function setupAvatarUpload() {
         const uploadInput = document.getElementById('avatar-upload');
         const avatarImg = document.getElementById('student-display-avatar');
+        const cropModal = document.getElementById('modal-crop-profile');
+        const cropImg = document.getElementById('crop-preview-img');
+        const zoomRange = document.getElementById('crop-zoom-range');
+        const btnCancelCrop = document.getElementById('btn-cancel-crop');
+        const btnSaveCrop = document.getElementById('btn-save-crop');
         
-        if (!uploadInput || !avatarImg) return;
+        if (!uploadInput || !avatarImg || !cropModal || !cropImg || !zoomRange || !btnCancelCrop || !btnSaveCrop) return;
+
+        let imgW = 0;
+        let imgH = 0;
+        let fitW = 0;
+        let fitH = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let currentZoom = 1;
         
-        uploadInput.addEventListener('change', async (e) => {
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let initialX = 0;
+        let initialY = 0;
+
+        uploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                const base64Str = e.target.result;
-                avatarImg.src = base64Str;
-                
-                if (state.currentStudent) {
-                    state.currentStudent.avatar = base64Str;
-                    await window.tuitionStore.updateStudent(state.currentStudent);
-                    await notifyDbUpdate('students', state.currentStudent.id);
-                }
+            reader.onload = (evt) => {
+                cropImg.src = evt.target.result;
+                cropModal.classList.add('active');
             };
             reader.readAsDataURL(file);
+        });
+
+        cropImg.onload = () => {
+            imgW = cropImg.naturalWidth;
+            imgH = cropImg.naturalHeight;
+            
+            const viewportSize = 280;
+            // Fit aspect ratio: Shorter side must equal viewportSize (280)
+            if (imgW > imgH) {
+                const scale = viewportSize / imgH;
+                fitH = viewportSize;
+                fitW = imgW * scale;
+            } else {
+                const scale = viewportSize / imgW;
+                fitW = viewportSize;
+                fitH = imgH * scale;
+            }
+
+            cropImg.style.width = `${fitW}px`;
+            cropImg.style.height = `${fitH}px`;
+            
+            // Center the image initially
+            currentX = (viewportSize - fitW) / 2;
+            currentY = (viewportSize - fitH) / 2;
+            currentZoom = 1;
+            
+            zoomRange.value = 1;
+            
+            updatePreviewTransform();
+        };
+
+        function updatePreviewTransform() {
+            // Clamping bounds to prevent transparent areas showing:
+            const viewportSize = 280;
+            const wRendered = fitW * currentZoom;
+            const hRendered = fitH * currentZoom;
+            
+            const minX = viewportSize - wRendered;
+            const minY = viewportSize - hRendered;
+            const maxX = 0;
+            const maxY = 0;
+
+            if (currentX < minX) currentX = minX;
+            if (currentX > maxX) currentX = maxX;
+            if (currentY < minY) currentY = minY;
+            if (currentY > maxY) currentY = maxY;
+
+            cropImg.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentZoom})`;
+        }
+
+        // Drag events
+        const startDrag = (clientX, clientY) => {
+            isDragging = true;
+            startX = clientX;
+            startY = clientY;
+            initialX = currentX;
+            initialY = currentY;
+        };
+
+        const moveDrag = (clientX, clientY) => {
+            if (!isDragging) return;
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            currentX = initialX + dx;
+            currentY = initialY + dy;
+            updatePreviewTransform();
+        };
+
+        const stopDrag = () => {
+            isDragging = false;
+        };
+
+        // Mouse listeners
+        cropImg.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startDrag(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) moveDrag(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', stopDrag);
+
+        // Touch listeners
+        cropImg.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', stopDrag);
+
+        // Zoom range change
+        zoomRange.addEventListener('input', () => {
+            const oldZoom = currentZoom;
+            currentZoom = parseFloat(zoomRange.value);
+            
+            // Zoom relative to viewport center (140, 140)
+            const cx = 140;
+            const cy = 140;
+            
+            const imgX = (cx - currentX) / oldZoom;
+            const imgY = (cy - currentY) / oldZoom;
+            
+            currentX = cx - imgX * currentZoom;
+            currentY = cy - imgY * currentZoom;
+            
+            updatePreviewTransform();
+        });
+
+        // Cancel crop
+        btnCancelCrop.addEventListener('click', () => {
+            cropModal.classList.remove('active');
+            uploadInput.value = ''; // Clear selected file
+        });
+
+        // Save crop
+        btnSaveCrop.addEventListener('click', async () => {
+            try {
+                // Pre-check dimension validity
+                const validW = fitW || cropImg.naturalWidth || 280;
+                const validH = fitH || cropImg.naturalHeight || 280;
+                const validZoom = currentZoom || 1;
+                const validX = currentX || 0;
+                const validY = currentY || 0;
+
+                // Draw to a 300x300 canvas for high-quality profile
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                const viewportSize = 280;
+                const scaleFactor = 300 / viewportSize;
+                
+                const drawW = validW * validZoom * scaleFactor;
+                const drawH = validH * validZoom * scaleFactor;
+                const drawX = validX * scaleFactor;
+                const drawY = validY * scaleFactor;
+
+                // Validate coordinates are finite numbers
+                if (isFinite(drawX) && isFinite(drawY) && isFinite(drawW) && isFinite(drawH) && drawW > 0 && drawH > 0) {
+                    // Enable image smoothing for high-quality scale
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    ctx.drawImage(cropImg, drawX, drawY, drawW, drawH);
+                } else {
+                    console.warn("Invalid crop bounds. Drawing original image full scale...");
+                    ctx.drawImage(cropImg, 0, 0, 300, 300);
+                }
+                
+                // Generate JPEG base64 string
+                const base64Str = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // Set student avatar image elements on page
+                avatarImg.src = base64Str;
+                
+                // Save to store & db
+                if (state.currentStudent) {
+                    state.currentStudent.avatar = base64Str;
+                    
+                    // Always save local override to ensure instant display on landing page grid
+                    localStorage.setItem(`tuition_avatar_${state.currentStudent.id}`, base64Str);
+                    
+                    try {
+                        await window.tuitionStore.updateStudent(state.currentStudent);
+                    } catch (dbErr) {
+                        console.error("Failed to update student avatar in DB:", dbErr);
+                    }
+                    await notifyDbUpdate('students', state.currentStudent.id);
+                }
+            } catch (err) {
+                console.error("Failed to crop and save avatar:", err);
+                alert("เกิดข้อผิดพลาดขณะตัดภาพโปรไฟล์: " + err.message);
+            } finally {
+                cropModal.classList.remove('active');
+                uploadInput.value = ''; // Reset file input
+            }
+        });
+    }
+
+    // Bind event listeners for student slips gallery modal
+    function setupStudentSlipsGallery() {
+        const btnViewAll = document.getElementById('btn-view-all-slips');
+        const modal = document.getElementById('modal-student-slips');
+        const btnClose = document.getElementById('btn-close-student-slips-modal');
+        const slipsGrid = document.getElementById('student-slips-grid');
+        const emptyState = document.getElementById('student-slips-empty-state');
+
+        if (!btnViewAll || !modal || !btnClose) return;
+
+        btnViewAll.addEventListener('click', async () => {
+            if (!state.currentStudent) return;
+            
+            // Clear grid
+            slipsGrid.innerHTML = '';
+            
+            // Fetch payments
+            const payments = await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id);
+            const slipPayments = payments.filter(p => p.slipImage);
+
+            if (slipPayments.length === 0) {
+                emptyState.style.display = 'block';
+                slipsGrid.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                slipsGrid.style.display = 'grid';
+
+                slipPayments.forEach(payment => {
+                    const card = document.createElement('div');
+                    card.className = 'slip-gallery-card';
+                    card.style.background = 'var(--neutral-light)';
+                    card.style.borderRadius = '12px';
+                    card.style.padding = '12px';
+                    card.style.display = 'flex';
+                    card.style.flexDirection = 'column';
+                    card.style.gap = '8px';
+                    card.style.border = '1px solid var(--neutral-border)';
+                    card.style.cursor = 'pointer';
+
+                    let statusText = '';
+                    let statusClass = '';
+                    if (payment.status === 'approved') {
+                        statusText = 'อนุมัติแล้ว';
+                        statusClass = 'badge-paid';
+                    } else if (payment.status === 'rejected') {
+                        statusText = 'ปฏิเสธ';
+                        statusClass = 'badge-rejected';
+                    } else {
+                        statusText = 'ตรวจสอบอยู่';
+                        statusClass = 'badge-pending';
+                    }
+
+                    const formattedDate = new Date(payment.dateTime).toLocaleString('th-TH', {
+                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
+                    }).replace(':', '.');
+
+                    card.innerHTML = `
+                        <div style="width: 100%; height: 200px; border-radius: 8px; overflow: hidden; background: #fff; position: relative;">
+                            <img src="${payment.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="สลิป">
+                            <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                <i class="fa-solid fa-expand"></i>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                            <span style="font-size: 13px; font-weight: 700; color: var(--neutral-dark);">${payment.amount > 0 ? payment.amount.toLocaleString() + ' THB' : '<span style="font-size:11px; color:#86868b; font-weight:500;">(ไม่ระบุยอด)</span>'}</span>
+                            <span class="status-badge ${statusClass}" style="font-size: 10px; padding: 3px 8px; scale: 0.95; transform-origin: right;">${statusText}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #86868b; font-weight: 500;">ส่งวันที่: ${formattedDate}</div>
+                    `;
+
+                    card.addEventListener('click', () => {
+                        // Close this gallery modal
+                        modal.classList.remove('active');
+                        // Show the full-size receipt/slip viewer
+                        showReceiptModal(payment.id, true);
+                    });
+
+                    slipsGrid.appendChild(card);
+                });
+            }
+
+            modal.classList.add('active');
+        });
+
+        btnClose.addEventListener('click', () => {
+            modal.classList.remove('active');
         });
     }
 
@@ -432,40 +812,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Student logout click
-        document.getElementById('btn-student-logout').addEventListener('click', () => {
-            state.currentStudent = null;
-            sessionStorage.removeItem('currentStudentId');
-            
-            // Clear payment form inputs and previews
-            resetPaymentForm();
-            
-            // Clear interval
-            if (state.timerInterval) clearInterval(state.timerInterval);
+        const logoutBtn = document.getElementById('btn-student-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                state.currentStudent = null;
+                sessionStorage.removeItem('currentStudentId');
+                
+                // Clear payment form inputs and previews
+                resetPaymentForm();
+                
+                // Clear interval
+                if (state.timerInterval) clearInterval(state.timerInterval);
 
-            // Re-render mock profile status list and switch view
-            renderStudentMockGrid();
-            switchView('view-student-auth');
-        });
+                // Re-render mock profile status list and switch view
+                renderStudentMockGrid();
+                switchView('view-student-auth');
+            });
+        }
     }
 
     async function logInStudent(student) {
         state.currentStudent = student;
         sessionStorage.setItem('currentStudentId', student.id);
         
+        const cleanName = getCleanName(student.name);
+        const fundingText = getFundingText(student);
+
         // Initialize stamp details for Header Zone
         const last4 = student.id.replace(/\D/g, '').slice(-4) || student.id.slice(-4);
         let genText = student.generation || student.year || '-';
         if (genText !== '-' && !genText.startsWith('รุ่น')) genText = 'รุ่น ' + genText;
         state.stampName = `${genText} รหัส ${last4} ห้อง ${student.room || '-'}`;
-        state.stampId = student.name;
+        state.stampId = cleanName;
         
         // Set header active state
         document.querySelectorAll('.app-header .nav-tab').forEach(t => t.classList.remove('active'));
         document.getElementById('tab-student-portal').classList.add('active');
 
         // Update Student View Info
-        document.getElementById('student-display-name').textContent = student.name;
-        document.getElementById('student-display-meta').textContent = `รหัส: ${student.id} • ห้อง ${student.room}`;
+        document.getElementById('student-display-name').textContent = cleanName;
+        document.getElementById('student-display-meta').textContent = `รหัส: ${student.id} • ห้อง ${student.room} • ${fundingText}`;
         
         const avatarImg = document.getElementById('student-display-avatar');
         if (avatarImg) {
@@ -511,23 +897,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. Status Badge Header
         const badge = document.getElementById('student-status-badge');
-        badge.className = 'status-badge';
-        
-        if (student.status === 'paid') {
-            badge.classList.add('badge-paid');
-            badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ชำระเงินเสร็จสิ้น`;
-        } else if (student.status === 'installment') {
-            badge.classList.add('badge-pending');
-            badge.innerHTML = `<i class="fa-solid fa-rotate"></i> ชำระแบ่งจ่ายสะสม`;
-        } else if (student.status === 'pending') {
-            badge.classList.add('badge-pending');
-            badge.innerHTML = `<i class="fa-solid fa-clock"></i> รอเจ้าหน้าที่ตรวจสลิป`;
-        } else if (student.status === 'rejected') {
-            badge.classList.add('badge-rejected');
-            badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> หลักฐานถูกปฏิเสธ`;
-        } else {
-            badge.classList.add('badge-unpaid');
-            badge.innerHTML = `<i class="fa-solid fa-circle-minus"></i> ค้างชำระเต็มจำนวน`;
+        if (badge) {
+            badge.className = 'status-badge';
+            
+            if (student.status === 'paid') {
+                badge.classList.add('badge-paid');
+                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ชำระเงินเสร็จสิ้น`;
+            } else if (student.status === 'installment') {
+                badge.classList.add('badge-pending');
+                badge.innerHTML = `<i class="fa-solid fa-rotate"></i> ชำระแบ่งจ่ายสะสม`;
+            } else if (student.status === 'pending') {
+                badge.classList.add('badge-pending');
+                badge.innerHTML = `<i class="fa-solid fa-clock"></i> รอเจ้าหน้าที่ตรวจสลิป`;
+            } else if (student.status === 'rejected') {
+                badge.classList.add('badge-rejected');
+                badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> หลักฐานถูกปฏิเสธ`;
+            } else {
+                badge.classList.add('badge-unpaid');
+                badge.innerHTML = `<i class="fa-solid fa-circle-minus"></i> ค้างชำระเต็มจำนวน`;
+            }
         }
 
         // 3. Hide / Show Payment form vs fully paid success card
@@ -605,7 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="timeline-content">
                     <div class="timeline-details">
                         <div class="timeline-amount">${payment.amount > 0 ? payment.amount.toLocaleString() + ' THB' : '<span style="font-size:12px; color:#86868b; font-weight:500;">(ไม่ได้ระบุยอด)</span>'}</div>
-                        <div class="timeline-meta">โอนวันที่: ${formattedDate}</div>
+                        <div class="timeline-meta">ส่งวันที่: ${formattedDate}</div>
                         <div class="timeline-meta" style="font-weight: 600; color: var(--neutral-dark);">สถานะ: ${statusText}</div>
 
                     </div>
@@ -713,7 +1101,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateField = document.getElementById('edit-slip-date');
 
             // Default suggestions based on current student context
-            stdNameField.value = state.currentStudent.name + " รุ่น21";
+            const cleanName = getCleanName(state.currentStudent.name);
+            stdNameField.value = cleanName + " รุ่น21";
             stdIdField.value = "รหัส" + state.currentStudent.id.replace(/\D/g, '');
             if (!stdIdField.value || stdIdField.value === 'รหัส') {
                 stdIdField.value = "รหัส" + state.currentStudent.id;
@@ -1350,7 +1739,8 @@ img.src = e.target.result;
                 room: document.getElementById('add-student-room').value.trim(),
                 totalTuition: parseFloat(document.getElementById('add-student-tuition').value) || 60000,
                 paidAmount: 0,
-                status: 'unpaid'
+                status: 'unpaid',
+                funding: document.getElementById('add-student-funding').value
             };
 
             // Check if student id duplicate
@@ -1366,6 +1756,7 @@ img.src = e.target.result;
                 // Success
                 alert(`🎉 เพิ่มข้อมูลนักเรียน ${student.name} สำเร็จ!`);
                 document.getElementById('form-admin-add-student').reset();
+                document.getElementById('add-student-funding').value = 'จ่ายเอง';
                 document.getElementById('modal-add-student').classList.remove('active');
                 
                 // Refresh and sync across tabs and current tab
@@ -1435,6 +1826,7 @@ img.src = e.target.result;
                 student.id = newId;
                 student.room = document.getElementById('edit-student-room').value.trim();
                 student.name = document.getElementById('edit-student-name').value.trim();
+                student.funding = document.getElementById('edit-student-funding').value;
 
                 if (oldId !== newId) {
                     // Add new student record first
@@ -1558,6 +1950,8 @@ img.src = e.target.result;
         for (const payment of filtered) {
             const student = await window.tuitionStore.getStudentById(payment.studentId);
             const stdName = student ? student.name : 'Unknown';
+            const cleanStdName = getCleanName(stdName);
+            const fundingText = getFundingText(student);
 
             const row = document.createElement('tr');
             
@@ -1584,15 +1978,14 @@ img.src = e.target.result;
             });
 
             row.innerHTML = `
+                <td>
+                    <span class="status-badge ${fundingText === 'กยศ' ? 'badge-gys' : 'badge-self'}">${fundingText}</span>
+                </td>
                 <td style="font-weight: 700;">
-                    <div>${stdName}</div>
-                    <div style="font-size: 11px; color:#86868b;">ID: ${payment.studentId}</div>
+                    <div>${cleanStdName}</div>
                 </td>
                 <td style="font-weight: 800; color: var(--primary);">${payment.amount > 0 ? payment.amount.toLocaleString() + ' บ.' : '<span style="font-weight:500; font-size:12px; color:#86868b;">ไม่ระบุยอด</span>'}</td>
                 <td>${formattedDate}</td>
-                <td>
-                    <span style="font-family: monospace; font-size: 11px; color: var(--primary);"><i class="fa-regular fa-image"></i> ${payment.slipName || 'slip.png'}</span>
-                </td>
                 <td>
                     <span class="status-badge ${badgeClass}">${statusText}</span>
                 </td>
@@ -1653,12 +2046,20 @@ img.src = e.target.result;
                 badgeClass = 'badge-unpaid';
             }
 
+            const cleanName = getCleanName(s.name);
+            const fundingText = getFundingText(s);
+
             const row = document.createElement('tr');
             row.innerHTML = `
+                <td style="text-align: center;">
+                    <span class="status-badge ${fundingText === 'กยศ' ? 'badge-gys' : 'badge-self'}">${fundingText}</span>
+                </td>
                 <td style="text-align: center; font-weight: 600;">${s.year || '-'}</td>
                 <td style="text-align: center; font-family: monospace; font-weight: 700;">${s.id}</td>
                 <td style="text-align: center; font-weight: 500;">${s.room}</td>
-                <td style="text-align: center; font-weight: 700;">${s.name}</td>
+                <td style="text-align: center; font-weight: 700;">
+                    <div>${cleanName}</div>
+                </td>
                 <td style="text-align: center; font-weight: 700; color: var(--success);">${s.paidAmount.toLocaleString()} บ.</td>
                 <td style="text-align: center; font-weight: 800; color: var(--danger);">${remaining.toLocaleString()} บ.</td>
                 <td style="text-align: center;">
@@ -1679,11 +2080,25 @@ img.src = e.target.result;
                 const stdId = btn.getAttribute('data-std-id');
                 const student = await window.tuitionStore.getStudentById(stdId);
                 if (student) {
+                    let fundingVal = student.funding;
+                    let displayName = student.name || '';
+                    if (!fundingVal) {
+                        if (displayName.endsWith('(กยศ)')) {
+                            fundingVal = 'กยศ';
+                            displayName = displayName.slice(0, -6).trim();
+                        } else if (displayName.endsWith('(จ่ายเอง)')) {
+                            fundingVal = 'จ่ายเอง';
+                            displayName = displayName.slice(0, -10).trim();
+                        } else {
+                            fundingVal = 'จ่ายเอง';
+                        }
+                    }
                     document.getElementById('edit-student-old-id').value = student.id;
                     document.getElementById('edit-student-generation').value = student.year || '';
                     document.getElementById('edit-student-id').value = student.id;
                     document.getElementById('edit-student-room').value = student.room || '';
-                    document.getElementById('edit-student-name').value = student.name || '';
+                    document.getElementById('edit-student-name').value = displayName;
+                    document.getElementById('edit-student-funding').value = fundingVal;
                     document.getElementById('modal-edit-student').classList.add('active');
                 }
             });
@@ -1701,10 +2116,12 @@ img.src = e.target.result;
 
         const student = await window.tuitionStore.getStudentById(payment.studentId);
         const stdName = student ? student.name : 'Unknown';
+        const cleanStdName = getCleanName(stdName);
+        const fundingText = getFundingText(student);
 
         // Set inspector headers & info details
-        document.getElementById('inspector-student-name').textContent = `ตรวจสอบสลิป • คุณ${stdName}`;
-        document.getElementById('inspector-payment-meta').textContent = `TXN: ${payment.refNo} • นักเรียน: ${payment.studentId}`;
+        document.getElementById('inspector-student-name').textContent = `ตรวจสอบสลิป • คุณ${cleanStdName}`;
+        document.getElementById('inspector-payment-meta').textContent = `TXN: ${payment.refNo} • นักเรียน: ${payment.studentId} • ${fundingText}`;
         
         document.getElementById('inspector-detail-amount').textContent = payment.amount > 0 ? `${payment.amount.toLocaleString()} บาท` : 'ไม่ระบุยอด (อ้างอิงจากสลิป)';
         
@@ -1936,9 +2353,24 @@ img.src = e.target.result;
     // =========================================================================
     // MODAL: OFFICIAL E-RECEIPT
     // =========================================================================
-    async function showReceiptModal(paymentId) {
+    async function showReceiptModal(paymentId, fromGallery = false) {
         const payment = await window.tuitionStore.getPaymentById(paymentId);
         if (!payment) return;
+
+        // Populate receipt modal fields dynamically
+        const student = await window.tuitionStore.getStudentById(payment.studentId);
+        if (student) {
+            const cleanName = getCleanName(student.name);
+            const fundingText = getFundingText(student);
+            const receiptName = document.getElementById('receipt-student-name');
+            if (receiptName) receiptName.textContent = cleanName;
+            
+            const receiptClass = document.getElementById('receipt-student-class');
+            if (receiptClass) receiptClass.textContent = `ปี ${student.year || student.generation || '1'} ห้อง ${student.room || '1'} (${fundingText})`;
+            
+            const receiptStudentId = document.getElementById('receipt-student-id');
+            if (receiptStudentId) receiptStudentId.textContent = student.id;
+        }
 
         // Hide paper receipt and buttons, show slip image
         const paperReceipt = document.querySelector('.receipt-paper');
@@ -2006,6 +2438,9 @@ img.src = e.target.result;
                 closeBtn.style.top = '';
                 closeBtn.style.right = '';
                 closeBtn.style.zIndex = '';
+            }
+            if (fromGallery) {
+                document.getElementById('modal-student-slips').classList.add('active');
             }
         };
     }

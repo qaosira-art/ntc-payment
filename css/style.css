@@ -126,12 +126,18 @@ html, body {
 }
 
 .logo-section img {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     filter: drop-shadow(0 2px 6px rgba(0, 102, 204, 0.15));
 }
 
+.logo-text {
+    font-family: 'Outfit', 'Noto Sans Thai', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d1d1f;
+}
 .nav-links {
     display: flex;
     gap: 6px;
@@ -139,6 +145,10 @@ html, body {
     padding: 4px;
     border-radius: 14px;
     border: 1px solid rgba(0,0,0,0.02);
+}
+
+.app-header .nav-links {
+    display: none !important;
 }
 
 .nav-tab {
@@ -155,6 +165,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: inherit;
 }
 
 .nav-tab:hover:not(.active) {
@@ -284,12 +295,65 @@ html, body {
 .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
 .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
 .badge-unpaid { background: #e5e5ea; color: #636366; }
+.badge-gys { background: rgba(0, 102, 204, 0.08); color: var(--primary); }
+.badge-self { background: rgba(255, 45, 85, 0.08); color: #ff2d55; }
 
 /* Progress Ledger ring styling */
 .ledger-container {
     display: flex;
     align-items: center;
     gap: 32px;
+}
+
+.ledger-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ledger-lbl {
+    font-size: 15px;
+    font-weight: 600;
+    color: #86868b;
+}
+
+.ledger-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+}
+
+/* Color overrides */
+.ledger-lbl-success {
+    color: var(--success-text);
+}
+
+.ledger-val-success {
+    color: var(--success);
+}
+
+.ledger-remaining-row {
+    border-top: 1px solid var(--neutral-border);
+    padding-top: 8px;
+}
+
+.ledger-remaining-row .ledger-lbl {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+}
+
+.ledger-remaining-row .ledger-val {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--danger);
 }
 
 .progress-ring-wrapper {
@@ -1016,9 +1080,7 @@ html, body {
         padding: 0 12px;
     }
     
-    .logo-text {
-        display: none;
-    }
+
     
     .payment-selector {
         grid-template-columns: 1fr;
@@ -1043,48 +1105,58 @@ html, body {
     }
 
     .student-hero-banner {
-        padding: 28px 14px !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        width: 100% !important;
+        width: 384px !important;
         max-width: 100% !important;
+        height: 134px !important;
+        padding: 0 16px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        margin-bottom: 20px !important;
         box-sizing: border-box !important;
-        border-radius: 16px !important;
+        border-radius: 20px !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
-        margin-bottom: 20px !important;
+        display: flex !important;
     }
     
     .student-hero-profile {
-        gap: 12px !important;
+        gap: 16px !important;
         flex: 1 !important;
         min-width: 0 !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     .student-hero-avatar {
-        width: 52px !important;
-        height: 52px !important;
-        font-size: 24px !important;
+        width: 72px !important;
+        height: 72px !important;
         flex-shrink: 0 !important;
     }
     
     .student-hero-info {
         min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
     }
     
     .student-hero-info h2 {
-        font-size: 15px !important;
+        font-size: 19px !important;
+        font-weight: 700 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
     }
     
     .student-hero-info p {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+        margin: 0 !important;
     }
 
     .student-hero-banner .text-right {
@@ -1092,8 +1164,8 @@ html, body {
     }
 
     .student-hero-banner .status-badge {
-        font-size: 9px !important;
-        padding: 4px 8px !important;
+        font-size: 11px !important;
+        padding: 6px 12px !important;
         white-space: nowrap !important;
     }
 
@@ -1115,11 +1187,11 @@ html, body {
     }
     
     .ledger-lbl {
-        font-size: 11px !important;
+        font-size: 15px !important;
     }
     
     .ledger-val {
-        font-size: 13px !important;
+        font-size: 15px !important;
     }
     
     .ledger-remaining-row {
@@ -1127,110 +1199,142 @@ html, body {
     }
     
     .ledger-remaining-row .ledger-lbl {
-        font-size: 12px !important;
+        font-size: 16px !important;
     }
     
     .ledger-remaining-row .ledger-val {
-        font-size: 14px !important;
+        font-size: 16px !important;
     }
 }
 
 /* Student card mobile responsive */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .premium-student-row-card {
-        padding: 12px 14px;
+        width: 348px !important;
+        height: 72px !important;
+        padding: 10px 12px !important;
+        box-sizing: border-box !important;
+        margin: 0 auto !important;
     }
 
     .student-card-content {
-        flex-wrap: nowrap;
-        gap: 8px;
-        align-items: center;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        width: 100% !important;
+        height: 100% !important;
+        flex-wrap: nowrap !important;
     }
 
     .student-card-profile {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex: 0 0 125px !important;
         min-width: 0 !important;
-        flex: 0 0 auto;
-        gap: 8px;
+        max-width: 125px !important;
     }
 
     .student-card-avatar {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-        flex-shrink: 0;
+        width: 48px !important;
+        height: 48px !important;
+        margin-left: -2px !important;
+        flex-shrink: 0 !important;
     }
 
     .student-card-details {
-        overflow: hidden;
-        max-width: 105px;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+        min-width: 0 !important;
+        flex-grow: 1 !important;
     }
 
     .student-card-name {
-        font-size: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .student-card-meta {
-        flex-wrap: nowrap;
-        gap: 3px;
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     .student-card-tag-id {
-        font-size: 9px;
-        padding: 1px 4px;
-        white-space: nowrap;
-    }
-
-    .student-card-tag-room {
-        font-size: 9px;
-        white-space: nowrap;
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        padding: 1px 4px !important;
+        background: rgba(0, 102, 204, 0.06) !important;
+        color: var(--primary) !important;
+        border-radius: 4px !important;
+        display: inline-block !important;
+        width: fit-content !important;
     }
 
     .student-card-progress-section {
-        flex: 1 1 auto;
-        min-width: 0;
-        gap: 3px;
-        overflow: hidden;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
     }
 
-    /* Keep status and amount on ONE ROW — do NOT use column direction */
     .student-card-progress-header {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 4px;
-        flex-wrap: nowrap;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        font-size: 10.5px !important;
+        font-family: 'Noto Sans Thai', sans-serif !important;
+        line-height: 1.2 !important;
     }
 
     .student-card-status-label {
-        font-size: 10px;
-        white-space: nowrap;
-        flex-shrink: 0;
+        font-size: 10.5px !important;
+        font-family: 'Noto Sans Thai', sans-serif !important;
+        color: #64748b !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        white-space: nowrap !important;
+    }
+
+    .student-card-status-label .status-badge {
+        font-size: 10.5px !important;
+        font-family: 'Noto Sans Thai', sans-serif !important;
+        padding: 1px 4px !important;
+        font-weight: 700 !important;
+        border-radius: 4px !important;
+        line-height: 1.1 !important;
+        display: inline-block !important;
     }
 
     .student-card-amount-label {
-        font-size: 10px;
-        white-space: nowrap;
-        flex-shrink: 0;
+        font-size: 10.5px !important;
+        font-family: 'Noto Sans Thai', sans-serif !important;
+        font-weight: 700 !important;
+        color: var(--primary) !important;
+        white-space: nowrap !important;
     }
 
-    /* Make status badge smaller */
-    .student-card-progress-header .status-badge {
-        font-size: 9px !important;
-        padding: 1px 5px !important;
+    .student-card-progress-bar-bg {
+        width: 100% !important;
+        height: 6px !important;
+        background: rgba(15, 23, 42, 0.06) !important;
+        border-radius: 99px !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+    }
+
+    .student-card-progress-bar-fill {
+        height: 100% !important;
+        border-radius: 99px !important;
     }
 
     .student-card-actions {
-        flex-shrink: 0;
-    }
-
-    .btn-pay-action {
-        min-width: 0 !important;
-        padding: 0 10px !important;
-        font-size: 12px !important;
-        height: 34px !important;
+        display: none !important;
     }
 }
 
@@ -1302,14 +1406,15 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="password"]:foc
     flex: 1;
 }
 .student-card-avatar {
-    width: 48px;
-    height: 48px;
+    width: 60px;
+    height: 60px;
+    margin-left: -8px;
     border-radius: 50%;
     background: linear-gradient(135deg, rgba(0, 102, 204, 0.06) 0%, rgba(0, 113, 227, 0.06) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 16px;
     border: 2px solid rgba(0, 102, 204, 0.12);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     transition: all 0.3s ease;
@@ -1684,7 +1789,8 @@ input[type="number"] {
     font-size: 12px;
 }
 
-#form-admin-add-student .form-field input {
+#form-admin-add-student .form-field input,
+#form-admin-add-student .form-field select {
     height: 40px;
     border-radius: 10px;
     padding: 0 12px;
@@ -1695,4 +1801,227 @@ input[type="number"] {
     height: 42px;
     font-size: 14px;
 }
+
+/* =========================================================================
+   HAMBURGER BUTTON & MOBILE DROPDOWN STYLING
+   ========================================================================= */
+
+/* Hamburger menu button */
+.hamburger-btn {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--neutral-border);
+    background: #fff;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.hamburger-btn:hover {
+    background: var(--neutral-light);
+    border-color: var(--primary);
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--neutral-dark);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Transform hamburger spans into an 'X' close button */
+.hamburger-btn.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-btn.open span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+
+.hamburger-btn.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile Dropdown Panel */
+.mobile-nav-dropdown {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    z-index: 999;
+    padding: 16px 24px;
+    flex-direction: column;
+    gap: 12px;
+    animation: slideDownMenuDropdown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-nav-dropdown.open {
+    display: flex !important;
+}
+
+@keyframes slideDownMenuDropdown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 16px;
+    background: #f5f5f7;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.mobile-nav-item:hover {
+    background: #e8f0fe;
+    border-color: rgba(0, 102, 204, 0.1);
+}
+
+.mobile-nav-item.active {
+    border: 1px solid #cce0ff;
+    background: #f0f7ff;
+}
+
+.mobile-nav-icon {
+    color: #0071e3;
+    font-size: 26px;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-nav-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-nav-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1d1d1f;
+    font-family: var(--font-primary);
+}
+
+.mobile-nav-item.active .mobile-nav-title {
+    color: #0071e3;
+}
+
+.mobile-nav-subtitle {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #86868b;
+    font-family: var(--font-primary);
+}
+
+.mobile-nav-item.active .mobile-nav-subtitle {
+    color: #6e6e73;
+}
+
+.mobile-nav-divider {
+    height: 1px;
+    background: var(--neutral-border);
+    margin: 2px 0;
+}
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+    .hamburger-btn {
+        display: flex;
+    }
+    
+    .nav-links {
+        display: none !important;
+    }
+    
+    .header-container {
+        padding: 0 16px;
+    }
+}
+
+/* Student Slips Gallery Card Hover Animations */
+.slip-gallery-card {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.slip-gallery-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 102, 204, 0.08);
+    border-color: rgba(0, 102, 204, 0.25) !important;
+}
+
+.slip-gallery-card:active {
+    transform: scale(0.97) !important;
+}
+
+.btn-modern-icon:hover {
+    background: rgba(0, 102, 204, 0.12) !important;
+    transform: scale(1.05);
+}
+
+.btn-modern-icon:active {
+    transform: scale(0.95);
+}
+
+/* Dark theme crop modal slider */
+#crop-zoom-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s ease;
+}
+
+#crop-zoom-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+#crop-zoom-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s ease;
+}
+
+#crop-zoom-range::-moz-range-thumb:hover {
+    transform: scale(1.15);
+}
+
+html.no-scroll, body.no-scroll {
+    overflow: hidden !important;
+    height: 100% !important;
+}
+
+
 
