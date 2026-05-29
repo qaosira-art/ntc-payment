@@ -92,6 +92,17 @@ class TuitionStore {
     }
 
     async getStudentById(id) {
+        // Optimistically check cache first for instant load
+        const cachedStudents = this._getCached('students');
+        if (cachedStudents) {
+            const found = cachedStudents.find(s => s.id === id);
+            if (found) {
+                const localAvatar = localStorage.getItem(`tuition_avatar_${id}`);
+                if (localAvatar) found.avatar = localAvatar;
+                return found;
+            }
+        }
+
         const { data, error } = await this.supabase
             .from('students')
             .select('*')

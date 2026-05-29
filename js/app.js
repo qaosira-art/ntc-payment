@@ -510,10 +510,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!modal) return;
 
-        // Close modal on backdrop click
-        backdrop.addEventListener('click', () => {
-            modal.classList.remove('active');
-            pendingStudentLogin = null;
+        // Close modal when clicking outside the content (on the modal container itself)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                pendingStudentLogin = null;
+            }
         });
 
         // Setup PIN inputs behavior
@@ -961,14 +963,14 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarImg.src = student.avatar || 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0';
         }
         
-        // Refresh dashboard details
-        await refreshStudentDashboard();
-        
-        // Show Portal View
+        // Show Portal View IMMEDIATELY so it feels snappy
         switchView('view-student-portal');
         
         // Start simulated Countdown timer
         startQRCountdown();
+
+        // Refresh dashboard details (fetches payments, etc)
+        await refreshStudentDashboard();
     }
 
     // =========================================================================
