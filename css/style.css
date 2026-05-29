@@ -2118,11 +2118,18 @@ html.no-scroll, body.no-scroll {
         display: none;
     }
     
-    /* Make table ultra-compact on mobile so it doesn't scroll */
+    /* Make table ultra-compact on mobile */
+    .premium-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px; /* Give some space for scrollbar */
+    }
+
     .premium-table th,
     .premium-table td {
-        padding: 8px 4px !important;
-        font-size: 11px !important;
+        padding: 10px 8px !important;
+        font-size: 12px !important;
+        white-space: nowrap !important; /* Force one line, allowing horizontal scroll */
     }
 }
 
