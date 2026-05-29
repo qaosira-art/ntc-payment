@@ -2311,6 +2311,44 @@ img.src = e.target.result;
             document.body.removeChild(a);
         });
 
+        // 6. SHARE TO LINE / OS NATIVE SHARE
+        document.getElementById('btn-viewer-share').addEventListener('click', async () => {
+            if (!state.inspectorPaymentId) return;
+            const payment = await window.tuitionStore.getPaymentById(state.inspectorPaymentId);
+            if (!payment) return;
+
+            if (navigator.share) {
+                try {
+                    // Try to share the image as a file (Works on iOS Safari and Android Chrome)
+                    if (payment.slipImage.startsWith('data:')) {
+                        const response = await fetch(payment.slipImage);
+                        const blob = await response.blob();
+                        const file = new File([blob], payment.slipName || `slip_${payment.studentId}.png`, { type: blob.type });
+                        
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                title: 'สลิปการโอนเงิน',
+                                text: `ตรวจสอบสลิปการโอนเงิน ยอด ${payment.amount} บาท (อ้างอิง: ${payment.refNo})`,
+                                files: [file]
+                            });
+                            return;
+                        }
+                    }
+                    // Fallback to text if file sharing is unsupported
+                    await navigator.share({
+                        title: 'สลิปการโอนเงิน',
+                        text: `ตรวจสอบสลิปการโอนเงิน ยอด ${payment.amount} บาท (อ้างอิง: ${payment.refNo})`
+                    });
+                } catch (err) {
+                    console.log('User cancelled share or share failed', err);
+                }
+            } else {
+                // Desktop fallback: Open LINE share URL with text
+                const text = encodeURIComponent(`สลิปการโอนเงิน ยอด ${payment.amount} บาท\nอ้างอิง: ${payment.refNo}`);
+                window.open(`https://social-plugins.line.me/lineit/share?text=${text}`, '_blank');
+            }
+        });
+
         // ADMIN DECISION: REJECT
         document.getElementById('btn-admin-reject-slip').addEventListener('click', async () => {
             const reasonBox = document.getElementById('rejection-reason-container');
