@@ -233,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. Setup Student Auth & Profiles
             renderStudentMockGrid();
             setupStudentAuth();
+            setupPinModal();
             
             // 4. Setup Student Payment Panel
             setupStudentPayment();
@@ -402,6 +403,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 sec.classList.add('hidden');
             }
         });
+
+        // Show header logout button only in admin portal
+        const logoutBtn = document.getElementById('btn-admin-logout');
+        if (logoutBtn) {
+            if (viewId === 'view-admin-portal') {
+                logoutBtn.style.display = 'flex';
+            } else {
+                logoutBtn.style.display = 'none';
+            }
+        }
     }
 
     // =========================================================================
@@ -464,14 +475,106 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // Row card click logs in the student directly
+            // Open PIN modal instead of direct login
             card.addEventListener('click', () => {
-                logInStudent(student);
+                openStudentPinModal(student);
             });
             
             grid.appendChild(card);
         });
     }
+
+    // --- STUDENT PIN AUTHENTICATION LOGIC ---
+    let pendingStudentLogin = null;
+
+    function openStudentPinModal(student) {
+        pendingStudentLogin = student;
+        document.getElementById('modal-student-pin').classList.add('active');
+        document.getElementById('pin-error').style.display = 'none';
+        
+        // Clear all inputs
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById('pin' + i).value = '';
+        }
+        
+        // Focus first input
+        setTimeout(() => {
+            document.getElementById('pin1').focus();
+        }, 100);
+    }
+
+    function setupPinModal() {
+        const backdrop = document.getElementById('backdrop-student-pin');
+        const modal = document.getElementById('modal-student-pin');
+        const errorText = document.getElementById('pin-error');
+        
+        if (!modal) return;
+
+        // Close modal on backdrop click
+        backdrop.addEventListener('click', () => {
+            modal.classList.remove('active');
+            pendingStudentLogin = null;
+        });
+
+        // Setup PIN inputs behavior
+        const pins = [
+            document.getElementById('pin1'),
+            document.getElementById('pin2'),
+            document.getElementById('pin3'),
+            document.getElementById('pin4')
+        ];
+
+        pins.forEach((pin, index) => {
+            pin.addEventListener('input', (e) => {
+                // Ensure only numbers
+                pin.value = pin.value.replace(/[^0-9]/g, '');
+                
+                if (pin.value.length === 1) {
+                    errorText.style.display = 'none';
+                    if (index < 3) {
+                        pins[index + 1].focus();
+                    } else {
+                        // Last pin filled, verify automatically
+                        verifyPin();
+                    }
+                }
+            });
+
+            pin.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && pin.value === '' && index > 0) {
+                    pins[index - 1].focus();
+                }
+            });
+        });
+
+        function verifyPin() {
+            if (!pendingStudentLogin) return;
+            
+            const enteredPin = pins.map(p => p.value).join('');
+            if (enteredPin.length !== 4) return;
+            
+            // Get last 4 digits of student ID
+            const targetPin = pendingStudentLogin.id.slice(-4);
+            
+            if (enteredPin === targetPin) {
+                modal.classList.remove('active');
+                logInStudent(pendingStudentLogin);
+                pendingStudentLogin = null;
+            } else {
+                // Wrong PIN
+                errorText.style.display = 'block';
+                // Add a small shake animation to modal content
+                const content = modal.querySelector('.premium-modal-content');
+                content.style.animation = 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both';
+                setTimeout(() => { content.style.animation = ''; }, 400);
+                
+                // Clear inputs and refocus
+                pins.forEach(p => p.value = '');
+                pins[0].focus();
+            }
+        }
+    }
+
 
     // Handle avatar image upload with interactive crop and position adjustments
     function setupAvatarUpload() {
@@ -1711,11 +1814,6 @@ img.src = e.target.result;
             updateAdminDashboard();
         });
 
-        // Filter vault status table selector
-        document.getElementById('select-filter-vault-status').addEventListener('change', () => {
-            renderAdminVaultList();
-        });
-
         // Add Student trigger modal
         document.getElementById('btn-admin-add-student-trigger').addEventListener('click', () => {
             document.getElementById('modal-add-student').classList.add('active');
@@ -1927,13 +2025,9 @@ img.src = e.target.result;
         const emptyState = document.getElementById('vault-empty-state');
 
         const payments = await window.tuitionStore.getPayments();
-        const filterVal = document.getElementById('select-filter-vault-status').value;
-
-        // Filter transaction list
-        const filtered = payments.filter(p => {
-            if (filterVal === 'all') return true;
-            return p.status === filterVal;
-        }).sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+        
+        // Show all items without filtering
+        const filtered = payments.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
 
         if (filtered.length === 0) {
             tbody.innerHTML = '';
@@ -1962,15 +2056,15 @@ img.src = e.target.result;
             if (payment.status === 'approved') {
                 statusText = 'อนุมัติแล้ว';
                 badgeClass = 'badge-paid';
-                actionBtn = `<button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-view-slip" data-payment-id="${payment.id}"><i class="fa-solid fa-eye"></i> ดูใบสลิป PNG</button>`;
+                actionBtn = `<button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-view-slip" data-payment-id="${payment.id}"><i class="fa-solid fa-eye"></i> <span class="hide-text-mobile">ดูใบสลิป PNG</span></button>`;
             } else if (payment.status === 'rejected') {
                 statusText = 'ปฏิเสธหลักฐาน';
                 badgeClass = 'badge-rejected';
-                actionBtn = `<button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-view-slip" data-payment-id="${payment.id}"><i class="fa-solid fa-eye"></i> ดูภาพความขัดแย้ง</button>`;
+                actionBtn = `<button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-view-slip" data-payment-id="${payment.id}"><i class="fa-solid fa-eye"></i> <span class="hide-text-mobile">ดูภาพความขัดแย้ง</span></button>`;
             } else {
                 statusText = 'รอดำเนินการ';
                 badgeClass = 'badge-pending';
-                actionBtn = `<button class="btn-modern btn-modern-primary btn-modern-sm btn-admin-inspect" data-payment-id="${payment.id}"><i class="fa-solid fa-magnifying-glass"></i> ตรวจสอบสลิป</button>`;
+                actionBtn = `<button class="btn-modern btn-modern-primary btn-modern-sm btn-admin-inspect" data-payment-id="${payment.id}"><i class="fa-solid fa-magnifying-glass"></i> <span class="hide-text-mobile">ตรวจสอบสลิป</span></button>`;
             }
 
             const formattedDate = new Date(payment.dateTime).toLocaleString('th-TH', {

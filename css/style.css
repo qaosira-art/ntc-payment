@@ -3,7 +3,7 @@
  * Inspired by Apple Design Guidelines (Glassmorphism, High-contrast dark indigo elements, beautiful transitions)
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;900&family=Kanit:wght@400;700;900&display=swap');
 
 :root {
     --primary: #0066cc; /* Classic Apple Royal Blue */
@@ -265,7 +265,7 @@ html, body {
 /* Section Header Typography */
 .section-title {
     font-size: 32px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--neutral-dark);
     margin-bottom: 8px;
     letter-spacing: -0.03em;
@@ -790,6 +790,7 @@ html, body {
     padding: 14px 20px;
     border-bottom: 1px solid rgba(0,0,0,0.06);
     text-align: center;
+    white-space: nowrap;
 }
 
 .premium-table td {
@@ -798,6 +799,7 @@ html, body {
     color: var(--neutral-dark);
     vertical-align: middle;
     text-align: center;
+    white-space: nowrap;
 }
 
 .premium-table tbody tr:hover {
@@ -930,7 +932,6 @@ html, body {
     display: flex;
     gap: 12px;
 }
-
 
 
 /* Beautiful Receipt Styling (Paper Look) */
@@ -1075,6 +1076,11 @@ html, body {
         max-width: 100% !important;
         touch-action: pan-y !important;
     }
+
+    /* Allow table to scroll horizontally via touch */
+    .premium-table-container {
+        touch-action: pan-x pan-y !important;
+    }
     
     .header-container {
         padding: 0 12px;
@@ -1090,18 +1096,49 @@ html, body {
         padding: 12px 8px !important;
         width: 100% !important;
         max-width: 100% !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
         box-sizing: border-box !important;
+    }
+
+    /* Allow table containers to scroll horizontally on mobile */
+    .premium-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border-radius: 12px !important;
+    }
+
+    /* Compact table cells on mobile */
+    .premium-table {
+        font-size: 12px !important;
+        min-width: 480px;
+    }
+
+    .premium-table th {
+        padding: 10px 10px !important;
+        font-size: 11px !important;
+        white-space: nowrap !important;
+    }
+
+    .premium-table td {
+        padding: 10px 10px !important;
+        font-size: 12px !important;
+    }
+
+    .premium-table .status-badge {
+        font-size: 10px !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
     }
     
     .card-panel {
-        padding: 20px 14px !important;
+        padding: 16px 10px !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
         border-radius: 16px !important;
+        overflow: visible !important;
     }
 
     .student-hero-banner {
@@ -2023,5 +2060,171 @@ html.no-scroll, body.no-scroll {
     height: 100% !important;
 }
 
+/* ─── Admin Portal Mobile Responsive ─── */
+@media (max-width: 600px) {
+    /* Admin tab controls stack vertically */
+    #view-admin-portal > div:first-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
 
+    #view-admin-portal > div:first-child > div:first-child,
+    #view-admin-portal > div:first-child > div:last-child {
+        width: auto !important;
+        text-align: center !important;
+    }
 
+    .nav-links {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 4px !important;
+    }
+
+    .nav-tab {
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+
+    /* Admin card panel header area - removed column wrap to keep button on right */
+
+    /* Filter select full width on mobile */
+    #select-filter-vault-status {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+
+    /* Admin stat cards compact */
+    #admin-stat-grid {
+        gap: 8px !important;
+    }
+
+    /* Scroll hint shadow on table removed as per user request */
+
+    .premium-table-container {
+        position: relative;
+    }
+
+    /* Button compact on mobile */
+    .btn-admin-inspect,
+    .btn-admin-view-slip {
+        font-size: 12px !important;
+        padding: 6px 8px !important;
+    }
+    
+    /* Hide text inside action buttons on mobile to save space */
+    .hide-text-mobile {
+        display: none;
+    }
+    
+    /* Make table ultra-compact on mobile so it doesn't scroll */
+    .premium-table th,
+    .premium-table td {
+        padding: 8px 4px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* Header Logout Button */
+.header-logout-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    outline: none;
+}
+.header-logout-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+.header-logout-btn.hidden {
+    display: none !important;
+}
+
+/* PIN Auth Modal */
+input.pin-box {
+    width: 54px !important;
+    height: 60px !important;
+    padding: 0 !important;
+    border-radius: 14px;
+    border: 2px solid #eef0f3;
+    background: #f5f5f7 !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    font-family: var(--font-primary) !important;
+    text-align: center;
+    color: #0062cc !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+}
+input.pin-box:focus {
+    background: #ffffff !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15) !important;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Admin Segmented Control (iOS style) */
+.admin-segmented-control {
+    display: inline-flex;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 99px;
+    gap: 4px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.admin-segmented-btn {
+    padding: 10px 24px;
+    border-radius: 99px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    outline: none;
+}
+
+.admin-segmented-btn:hover:not(.active) {
+    color: #334155;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.admin-segmented-btn.active {
+    background: #ffffff;
+    color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-weight: 700;
+}
+
+.admin-segmented-btn:active {
+    transform: scale(0.96);
+}
+
+@media (max-width: 768px) {
+    .admin-segmented-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}

@@ -32,12 +32,18 @@
                 <a href="#" class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth"><i class="fa-solid fa-user-tie"></i> ที่ปรึกษา</a>
             </nav>
 
-            <!-- Hamburger button (mobile only) -->
-            <button class="hamburger-btn" id="btn-hamburger" aria-label="เมนู">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+            <!-- Right actions (Logout + Hamburger) -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="btn-admin-logout" class="header-logout-btn" title="ออกจากระบบ" style="display: none;">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+                <!-- Hamburger button (mobile only) -->
+                <button class="hamburger-btn" id="btn-hamburger" aria-label="เมนู">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
         </div>
         
         <!-- Mobile dropdown menu -->
@@ -275,22 +281,14 @@
         <!-- VIEW 4: ADMIN PORTAL DASHBOARD               -->
         <!-- ============================================ -->
         <section id="view-admin-portal" class="view-section hidden">
-            <!-- Admin Segmented Tab Control & Logout -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-top: 16px;">
-                <div style="width: 180px;"></div> <!-- Spacer for layout balance -->
-                
-                <div class="nav-links" style="background: rgba(0, 0, 0, 0.05); padding: 4px; border-radius: var(--radius-sm);">
-                    <button class="nav-tab active" id="btn-admin-tab-vault" data-target="admin-tab-vault">
+            <!-- Admin Segmented Tab Control -->
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px; padding-top: 16px;">
+                <div class="admin-segmented-control">
+                    <button class="admin-segmented-btn active" id="btn-admin-tab-vault" data-target="admin-tab-vault">
                         <i class="fa-solid fa-folder-open"></i> รายการตรวจสลิปเงินโอน
                     </button>
-                    <button class="nav-tab" id="btn-admin-tab-students" data-target="admin-tab-students">
+                    <button class="admin-segmented-btn" id="btn-admin-tab-students" data-target="admin-tab-students">
                         <i class="fa-solid fa-user-gear"></i> การจัดการรายชื่อนักเรียน
-                    </button>
-                </div>
-                
-                <div style="width: 180px; text-align: right;">
-                    <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-admin-logout">
-                        ออกจากระบบ <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
             </div>
@@ -302,14 +300,6 @@
                         <h3 style="font-size: 18px; font-weight: 700;">
                             <i class="fa-solid fa-clipboard-check" style="color: var(--primary);"></i> ตรวจสอบหลักฐานการโอนเงิน
                         </h3>
-                        <div style="display: flex; gap: 12px;">
-                            <select id="select-filter-vault-status" class="form-field" style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; margin-bottom: 0; min-width: 140px; background: white;">
-                                <option value="all">สถานะ: ทั้งหมด</option>
-                                <option value="pending" selected>เฉพาะรอดำเนินการ</option>
-                                <option value="approved">อนุมัติแล้ว</option>
-                                <option value="rejected">ปฏิเสธสลิปแล้ว</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="premium-table-container">
@@ -344,8 +334,8 @@
                         <h3 style="font-size: 18px; font-weight: 700;">
                             <i class="fa-solid fa-address-book" style="color: var(--primary);"></i> รายชื่อและฐานข้อมูลนักเรียน
                         </h3>
-                        <button class="btn-modern btn-modern-primary btn-modern-sm" id="btn-admin-add-student-trigger">
-                            <i class="fa-solid fa-plus"></i> เพิ่มนักเรียนใหม่
+                        <button class="btn-modern btn-modern-primary btn-modern-sm" id="btn-admin-add-student-trigger" title="เพิ่มนักเรียนใหม่" style="padding: 8px 12px; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-user-plus" style="margin: 0;"></i>
                         </button>
                     </div>
 
@@ -804,6 +794,25 @@
     <div id="modal-success-checkmark" class="premium-modal">
         <div class="success-checkmark-card">
             <lottie-player id="lottie-success-player" background="transparent" speed="1.2" style="width: 220px; height: 220px;" autoplay></lottie-player>
+        </div>
+    </div>
+    <!-- Student PIN Auth Modal -->
+    <div id="modal-student-pin" class="premium-modal">
+        <div class="premium-modal-backdrop" id="backdrop-student-pin"></div>
+        <div class="premium-modal-content" style="max-width: 320px; text-align: center; padding: 32px 24px;">
+            <div style="background: #eef2ff; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <i class="fa-solid fa-lock" style="color: var(--primary); font-size: 24px;"></i>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f;">ยืนยันตัวตน</h3>
+            <p style="font-size: 13px; color: #6e6e73; margin-bottom: 24px;">กรุณากรอก <span style="font-weight: 700;">4 ตัวท้าย</span> ของรหัสนักศึกษา</p>
+            
+            <div class="pin-inputs" style="display: flex; justify-content: center; gap: 12px; margin-bottom: 12px;">
+                <input type="text" class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="pin1" autocomplete="off">
+                <input type="text" class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="pin2" autocomplete="off">
+                <input type="text" class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="pin3" autocomplete="off">
+                <input type="text" class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="pin4" autocomplete="off">
+            </div>
+            <p id="pin-error" style="color: var(--danger); font-size: 13px; margin-top: 8px; display: none; font-weight: 600;">รหัสไม่ถูกต้อง</p>
         </div>
     </div>
 
