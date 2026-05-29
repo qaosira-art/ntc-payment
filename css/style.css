@@ -2107,10 +2107,12 @@ html.no-scroll, body.no-scroll {
     }
 
     /* Button compact on mobile */
+    /* Button ultra-compact on mobile */
     .btn-admin-inspect,
     .btn-admin-view-slip {
-        font-size: 12px !important;
-        padding: 6px 8px !important;
+        font-size: 10px !important;
+        padding: 4px 6px !important;
+        min-width: 28px !important;
     }
     
     /* Hide text inside action buttons on mobile to save space */
@@ -2118,18 +2120,24 @@ html.no-scroll, body.no-scroll {
         display: none;
     }
     
-    /* Make table ultra-compact on mobile */
+    /* Squeeze table to fit all 6 columns on mobile without scrolling */
     .premium-table-container {
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 8px; /* Give some space for scrollbar */
+        overflow-x: hidden !important;
+        padding-bottom: 0px;
+        zoom: 0.78; /* Scale down the entire table by 22% to guarantee it fits */
+        width: 100%;
     }
 
     .premium-table th,
     .premium-table td {
-        padding: 10px 8px !important;
-        font-size: 12px !important;
-        white-space: nowrap !important; /* Force one line, allowing horizontal scroll */
+        padding: 4px 2px !important;
+        font-size: 11px !important;
+        white-space: nowrap !important;
+    }
+    
+    .premium-table .status-badge {
+        font-size: 10px !important;
+        padding: 2px 4px !important;
     }
 }
 
