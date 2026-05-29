@@ -2074,9 +2074,6 @@ img.src = e.target.result;
             });
 
             row.innerHTML = `
-                <td>
-                    <span class="status-badge ${fundingText === 'กยศ' ? 'badge-gys' : 'badge-self'}">${fundingText}</span>
-                </td>
                 <td style="font-weight: 700;">
                     <div>${cleanStdName}</div>
                 </td>
