@@ -2172,11 +2172,19 @@ input.pin-box:focus {
     box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15) !important;
 }
 
-/* Fix for mobile keyboard pushing PIN modal off screen */
+/* Fix for mobile keyboard pushing PIN modal off screen and jumping during typing */
 @media (max-width: 768px) {
     #modal-student-pin {
-        align-items: flex-start;
-        padding-top: 12vh;
+        display: block; /* Remove flex to stop iOS from jumping when keyboard resizes viewport */
+        overflow-y: auto;
+        padding-top: 15vh; /* Anchor it near the top */
+    }
+    #modal-student-pin .premium-modal-content {
+        margin: 0 auto;
+        transform: scale(0.95); /* Slight scale down to ensure it fits nicely */
+    }
+    #modal-student-pin.active .premium-modal-content {
+        transform: scale(1);
     }
 }
 
