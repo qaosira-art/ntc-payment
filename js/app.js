@@ -569,8 +569,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Wrong PIN
                 errorText.style.display = 'block';
-                // Add a small shake animation to modal content
-                const content = modal.querySelector('.premium-modal-content');
+                // Add a small shake animation to pin inputs container
+                const content = modal.querySelector('.pin-inputs');
                 content.style.animation = 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both';
                 setTimeout(() => { content.style.animation = ''; }, 400);
                 
