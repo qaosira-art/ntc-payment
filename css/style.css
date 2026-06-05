@@ -2249,9 +2249,10 @@ html.no-scroll, body.no-scroll {
     user-select: none;
     -webkit-user-select: none;
     outline: none;
+    touch-action: manipulation;
 }
 
-.numpad-btn:active {
+.numpad-btn:active, .numpad-btn.active-tap {
     background: #f5f5f7;
 }
 
@@ -2260,7 +2261,7 @@ html.no-scroll, body.no-scroll {
     font-size: 24px;
     color: #6e6e73;
 }
-.numpad-delete:active {
+.numpad-delete:active, .numpad-delete.active-tap {
     background: transparent;
     opacity: 0.5;
 }

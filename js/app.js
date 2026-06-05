@@ -573,13 +573,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Setup custom numpad
+        // Setup custom numpad with instant touch response
         const numpadBtns = document.querySelectorAll('.numpad-btn[data-val]');
         numpadBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
+            btn.addEventListener('pointerdown', (e) => {
+                btn.classList.add('active-tap');
                 handleNumpadClick(btn.getAttribute('data-val'));
             });
+            btn.addEventListener('pointerup', () => btn.classList.remove('active-tap'));
+            btn.addEventListener('pointercancel', () => btn.classList.remove('active-tap'));
+            btn.addEventListener('pointerleave', () => btn.classList.remove('active-tap'));
         });
 
         // Setup hardware keyboard support
@@ -597,10 +600,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const numpadDeleteBtn = document.getElementById('numpad-delete-btn');
         if (numpadDeleteBtn) {
-            numpadDeleteBtn.addEventListener('click', (e) => {
-                e.preventDefault();
+            numpadDeleteBtn.addEventListener('pointerdown', (e) => {
+                numpadDeleteBtn.classList.add('active-tap');
                 handleNumpadDelete();
             });
+            numpadDeleteBtn.addEventListener('pointerup', () => numpadDeleteBtn.classList.remove('active-tap'));
+            numpadDeleteBtn.addEventListener('pointercancel', () => numpadDeleteBtn.classList.remove('active-tap'));
+            numpadDeleteBtn.addEventListener('pointerleave', () => numpadDeleteBtn.classList.remove('active-tap'));
         }
     }
 
