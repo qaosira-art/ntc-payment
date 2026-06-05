@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Slip GYS">
     <link rel="apple-touch-icon" href="assets/logo.png">
-    <link rel="stylesheet" href="css/style.css?v=12">
+    <link rel="stylesheet" href="css/style.css?v=13">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lottie Player Script -->
@@ -810,10 +810,13 @@
             <lottie-player id="lottie-success-player" background="transparent" speed="1.2" style="width: 220px; height: 220px;" autoplay></lottie-player>
         </div>
     </div>
-    <!-- Student PIN Auth Modal -->
+    <!-- Student PIN Auth Modal (Full Screen on Mobile) -->
     <div id="modal-student-pin" class="premium-modal">
         <div class="premium-modal-backdrop" id="backdrop-student-pin"></div>
         <div class="premium-modal-content" style="max-width: 320px; text-align: center; padding: 32px 24px;">
+            <button id="btn-close-pin" style="position: absolute; top: 24px; left: 24px; background: none; border: none; font-size: 20px; color: #1d1d1f; cursor: pointer; padding: 8px; z-index: 10;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
             <div style="background: #eef2ff; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                 <i class="fa-solid fa-lock" style="color: var(--primary); font-size: 24px;"></i>
             </div>
@@ -854,7 +857,7 @@
     <!-- System Libraries -->
     <script src="js/store.js"></script>
     <script src="js/lottie-data.js"></script>
-    <script src="js/app.js?v=12"></script>
+    <script src="js/app.js?v=13"></script>
     <script>
         // Disable pinch-zoom gestures
         document.addEventListener('gesturestart', function(e) {

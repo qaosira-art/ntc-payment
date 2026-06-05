@@ -2229,12 +2229,36 @@ html.no-scroll, body.no-scroll {
         -webkit-backdrop-filter: none;
         background: rgba(0, 0, 0, 0.6);
     }
-    #modal-student-pin .premium-modal-content {
-        margin: 0 auto;
-        transform: scale(0.95); /* Slight scale down to ensure it fits nicely */
+    #modal-student-pin {
+        background: var(--bg-app);
+        opacity: 1 !important;
+        visibility: hidden;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.4s;
     }
-    #modal-student-pin.active .premium-modal-content {
-        transform: scale(1);
+    #modal-student-pin.active {
+        transform: translateY(0);
+        visibility: visible;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
+    }
+    #modal-student-pin .premium-modal-backdrop {
+        display: none;
+    }
+    #modal-student-pin .premium-modal-content {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        border-radius: 0;
+        padding: 80px 24px 24px;
+        transform: none !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        margin: 0;
     }
 }
 

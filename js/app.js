@@ -506,6 +506,14 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.add('active');
     }
 
+    const btnClosePin = document.getElementById('btn-close-pin');
+    if (btnClosePin) {
+        btnClosePin.addEventListener('click', () => {
+            document.getElementById('modal-student-pin').classList.remove('active');
+            pendingStudentLogin = null;
+        });
+    }
+
     function setupPinModal() {
         const modal = document.getElementById('modal-student-pin');
         const errorText = document.getElementById('pin-error');
