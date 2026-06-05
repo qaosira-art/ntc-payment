@@ -487,16 +487,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STUDENT PIN AUTHENTICATION LOGIC ---
     let pendingStudentLogin = null;
 
+    let currentPin = '';
+
     function openStudentPinModal(student) {
         pendingStudentLogin = student;
         document.getElementById('pin-error').style.display = 'none';
         
-        // Clear all inputs and sync UI BEFORE starting transition
-        const hiddenPin = document.getElementById('hidden-pin-input');
-        if (hiddenPin) {
-            hiddenPin.value = '';
-            hiddenPin.dispatchEvent(new Event('input'));
-        }
+        // Reset PIN
+        currentPin = '';
+        updatePinDisplay();
         
         // Force a layout recalculation to prevent Safari first-render glitch
         const modal = document.getElementById('modal-student-pin');
@@ -514,12 +513,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function updatePinDisplay() {
+        const pinDisplays = [
+            document.getElementById('pin1-display'),
+            document.getElementById('pin2-display'),
+            document.getElementById('pin3-display'),
+            document.getElementById('pin4-display')
+        ];
+        
+        pinDisplays.forEach((disp, i) => {
+            if (i < currentPin.length) {
+                disp.textContent = '•';
+                disp.classList.add('focused-box');
+            } else {
+                disp.textContent = '';
+                disp.classList.remove('focused-box');
+            }
+            
+            // Add a slight active state to the current box being typed into
+            if (i === currentPin.length) {
+                disp.style.borderColor = 'var(--primary)';
+            } else {
+                disp.style.borderColor = '';
+            }
+        });
+    }
+
+    function handleNumpadClick(val) {
+        const errorText = document.getElementById('pin-error');
+        errorText.style.display = 'none';
+        
+        if (currentPin.length < 4) {
+            currentPin += val;
+            updatePinDisplay();
+            
+            if (currentPin.length === 4) {
+                verifyPin();
+            }
+        }
+    }
+
+    function handleNumpadDelete() {
+        if (currentPin.length > 0) {
+            currentPin = currentPin.slice(0, -1);
+            updatePinDisplay();
+            document.getElementById('pin-error').style.display = 'none';
+        }
+    }
+
     function setupPinModal() {
         const modal = document.getElementById('modal-student-pin');
-        const errorText = document.getElementById('pin-error');
-        const hiddenPin = document.getElementById('hidden-pin-input');
-        
-        if (!modal || !hiddenPin) return;
+        if (!modal) return;
 
         // Close modal when clicking outside the content (on the modal container itself)
         modal.addEventListener('click', (e) => {
@@ -529,62 +573,50 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Setup PIN inputs behavior
-        const pinDisplays = [
-            document.getElementById('pin1-display'),
-            document.getElementById('pin2-display'),
-            document.getElementById('pin3-display'),
-            document.getElementById('pin4-display')
-        ];
-
-        hiddenPin.addEventListener('input', (e) => {
-            // Ensure only numbers
-            hiddenPin.value = hiddenPin.value.replace(/[^0-9]/g, '');
-            const val = hiddenPin.value;
-            
-            // Update UI boxes
-            pinDisplays.forEach((disp, i) => {
-                disp.textContent = val[i] || '';
-                if (i === val.length || (i === 3 && val.length === 4)) {
-                    disp.classList.add('focused-box');
-                } else {
-                    disp.classList.remove('focused-box');
-                }
+        // Setup custom numpad
+        const numpadBtns = document.querySelectorAll('.numpad-btn[data-val]');
+        numpadBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleNumpadClick(btn.getAttribute('data-val'));
             });
-            
-            errorText.style.display = 'none';
-
-            if (val.length === 4) {
-                verifyPin();
-            }
         });
 
-        function verifyPin() {
-            if (!pendingStudentLogin) return;
+        const numpadDeleteBtn = document.getElementById('numpad-delete-btn');
+        if (numpadDeleteBtn) {
+            numpadDeleteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleNumpadDelete();
+            });
+        }
+    }
+
+    function verifyPin() {
+        if (!pendingStudentLogin) return;
+        
+        const targetPin = pendingStudentLogin.id.slice(-4);
+        
+        if (currentPin === targetPin) {
+            const modal = document.getElementById('modal-student-pin');
+            modal.classList.remove('active');
+            logInStudent(pendingStudentLogin);
+            pendingStudentLogin = null;
+        } else {
+            // Wrong PIN
+            const errorText = document.getElementById('pin-error');
+            errorText.style.display = 'block';
             
-            const enteredPin = hiddenPin.value;
-            if (enteredPin.length !== 4) return;
-            
-            // Get last 4 digits of student ID
-            const targetPin = pendingStudentLogin.id.slice(-4);
-            
-            if (enteredPin === targetPin) {
-                modal.classList.remove('active');
-                logInStudent(pendingStudentLogin);
-                pendingStudentLogin = null;
-            } else {
-                // Wrong PIN
-                errorText.style.display = 'block';
-                // Add a small shake animation to pin inputs container
-                const content = modal.querySelector('.pin-inputs');
+            // Add a small shake animation to pin inputs container
+            const modal = document.getElementById('modal-student-pin');
+            const content = modal.querySelector('.pin-inputs');
+            if (content) {
                 content.style.animation = 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both';
                 setTimeout(() => { content.style.animation = ''; }, 400);
-                
-                // Clear input and refocus
-                hiddenPin.value = '';
-                hiddenPin.dispatchEvent(new Event('input'));
-                hiddenPin.focus();
             }
+            
+            // Clear input
+            currentPin = '';
+            updatePinDisplay();
         }
     }
 

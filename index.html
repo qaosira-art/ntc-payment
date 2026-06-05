@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Slip GYS">
     <link rel="apple-touch-icon" href="assets/logo.png">
-    <link rel="stylesheet" href="css/style.css?v=16">
+    <link rel="stylesheet" href="css/style.css?v=17">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lottie Player Script -->
@@ -822,8 +822,7 @@
             <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f;">ยืนยันตัวตน</h3>
             <p style="font-size: 13px; color: #6e6e73; margin-bottom: 24px;">กรุณากรอก <span style="font-weight: 700;">4 ตัวท้าย</span> ของรหัสนักศึกษา</p>
             
-            <div style="position: relative; margin-bottom: 12px;">
-                <input type="text" id="hidden-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="position: absolute; width: 100%; height: 100%; z-index: 10; left: 0; top: 0; cursor: pointer; color: transparent; background: transparent; border: none; outline: none; caret-color: transparent; font-size: 16px;">
+            <div style="margin-bottom: 32px;">
                 <div class="pin-inputs" style="display: flex; justify-content: center; gap: 12px; pointer-events: none;">
                     <div class="pin-box" id="pin1-display"></div>
                     <div class="pin-box" id="pin2-display"></div>
@@ -831,7 +830,24 @@
                     <div class="pin-box" id="pin4-display"></div>
                 </div>
             </div>
-            <p id="pin-error" style="color: var(--danger); font-size: 13px; margin-top: 8px; display: none; font-weight: 600;">รหัสไม่ถูกต้อง</p>
+            <p id="pin-error" style="color: var(--danger); font-size: 13px; margin-top: -16px; margin-bottom: 24px; display: none; font-weight: 600;">รหัสไม่ถูกต้อง</p>
+            
+            <div class="custom-numpad" id="student-numpad">
+                <button type="button" class="numpad-btn" data-val="1">1</button>
+                <button type="button" class="numpad-btn" data-val="2">2</button>
+                <button type="button" class="numpad-btn" data-val="3">3</button>
+                <button type="button" class="numpad-btn" data-val="4">4</button>
+                <button type="button" class="numpad-btn" data-val="5">5</button>
+                <button type="button" class="numpad-btn" data-val="6">6</button>
+                <button type="button" class="numpad-btn" data-val="7">7</button>
+                <button type="button" class="numpad-btn" data-val="8">8</button>
+                <button type="button" class="numpad-btn" data-val="9">9</button>
+                <div class="numpad-btn-empty"></div>
+                <button type="button" class="numpad-btn" data-val="0">0</button>
+                <button type="button" class="numpad-btn numpad-delete" id="numpad-delete-btn">
+                    <i class="fa-solid fa-delete-left"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -856,7 +872,7 @@
     <!-- System Libraries -->
     <script src="js/store.js"></script>
     <script src="js/lottie-data.js"></script>
-    <script src="js/app.js?v=16"></script>
+    <script src="js/app.js?v=17"></script>
     <script>
         // Disable pinch-zoom gestures
         document.addEventListener('gesturestart', function(e) {
