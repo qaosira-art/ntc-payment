@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         pinDisplays.forEach((disp, i) => {
             if (i < currentPin.length) {
-                disp.textContent = '•';
+                disp.textContent = currentPin[i];
                 disp.classList.add('focused-box');
             } else {
                 disp.textContent = '';
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup custom numpad
         const numpadBtns = document.querySelectorAll('.numpad-btn[data-val]');
         numpadBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 handleNumpadClick(btn.getAttribute('data-val'));
             });
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const numpadDeleteBtn = document.getElementById('numpad-delete-btn');
         if (numpadDeleteBtn) {
-            numpadDeleteBtn.addEventListener('click', (e) => {
+            numpadDeleteBtn.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 handleNumpadDelete();
             });
