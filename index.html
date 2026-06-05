@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Slip GYS">
     <link rel="apple-touch-icon" href="assets/logo.png">
-    <link rel="stylesheet" href="css/style.css?v=18">
+    <link rel="stylesheet" href="css/style.css?v=19">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lottie Player Script -->
@@ -811,11 +811,11 @@
         </div>
     </div>
     <!-- Student PIN Auth Modal (Full Screen on Mobile) -->
-    <div id="modal-student-pin" class="premium-modal" style="position: relative;">
-        <button id="btn-close-pin" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: #8e8e93; cursor: pointer; padding: 16px; z-index: 20; -webkit-tap-highlight-color: transparent;">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
+    <div id="modal-student-pin" class="premium-modal">
         <div class="premium-modal-content" style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding-bottom: 20vh;">
+            <button id="btn-close-pin" style="position: absolute; top: 24px; right: 24px; background: none; border: none; font-size: 24px; color: #8e8e93; cursor: pointer; padding: 12px; z-index: 10; -webkit-tap-highlight-color: transparent;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
             <div style="background: #eef2ff; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                 <i class="fa-solid fa-lock" style="color: var(--primary); font-size: 24px;"></i>
             </div>
@@ -845,7 +845,7 @@
                 <div class="numpad-btn-empty"></div>
                 <button type="button" class="numpad-btn" data-val="0">0</button>
                 <button type="button" class="numpad-btn numpad-delete" id="numpad-delete-btn">
-                    <i class="fa-solid fa-delete-left"></i>
+                    &#x232B;
                 </button>
             </div>
         </div>
@@ -872,7 +872,7 @@
     <!-- System Libraries -->
     <script src="js/store.js"></script>
     <script src="js/lottie-data.js"></script>
-    <script src="js/app.js?v=18"></script>
+    <script src="js/app.js?v=19"></script>
     <script>
         // Disable pinch-zoom gestures
         document.addEventListener('gesturestart', function(e) {

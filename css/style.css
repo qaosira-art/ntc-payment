@@ -2219,6 +2219,52 @@ html.no-scroll, body.no-scroll {
     box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15) !important;
 }
 
+/* Custom Numpad */
+.custom-numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px 24px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.numpad-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 1px solid #e5e5ea;
+    background: transparent;
+    color: #1d1d1f;
+    font-size: 28px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: var(--font-primary);
+    transition: background 0.1s;
+    margin: 0 auto;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+}
+
+.numpad-btn:active {
+    background: #f5f5f7;
+}
+
+.numpad-delete {
+    border: none;
+    font-size: 24px;
+    color: #6e6e73;
+}
+.numpad-delete:active {
+    background: transparent;
+    opacity: 0.5;
+}
+
 /* Fix for mobile keyboard pushing PIN modal off screen and jumping during typing */
 @media (max-width: 768px) {
     #modal-student-pin {
@@ -2262,52 +2308,6 @@ html.no-scroll, body.no-scroll {
         justify-content: center;
         align-items: center;
         margin: 0;
-    }
-    
-    /* Custom Numpad */
-    .custom-numpad {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px 24px;
-        width: 100%;
-        max-width: 320px;
-        margin: 0 auto;
-    }
-
-    .numpad-btn {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        border: 1px solid #e5e5ea;
-        background: transparent;
-        color: #1d1d1f;
-        font-size: 28px;
-        font-weight: 400;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        transition: background 0.1s;
-        margin: 0 auto;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-        -webkit-user-select: none;
-        outline: none;
-    }
-
-    .numpad-btn:active {
-        background: #f5f5f7;
-    }
-
-    .numpad-delete {
-        border: none;
-        font-size: 24px;
-        color: #6e6e73;
-    }
-    .numpad-delete:active {
-        background: transparent;
-        opacity: 0.5;
     }
 }
 

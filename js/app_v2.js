@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         pinDisplays.forEach((disp, i) => {
             if (i < currentPin.length) {
-                disp.textContent = '•';
+                disp.textContent = currentPin[i];
                 disp.classList.add('focused-box');
             } else {
                 disp.textContent = '';
@@ -577,28 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const numpadBtns = document.querySelectorAll('.numpad-btn[data-val]');
         numpadBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.preventDefault();
                 handleNumpadClick(btn.getAttribute('data-val'));
             });
-        });
-
-        // Setup hardware keyboard support
-        document.addEventListener('keydown', (e) => {
-            if (!modal.classList.contains('active')) return;
-            
-            if (/^[0-9]$/.test(e.key)) {
-                e.preventDefault();
-                handleNumpadClick(e.key);
-            } else if (e.key === 'Backspace' || e.key === 'Delete') {
-                e.preventDefault();
-                handleNumpadDelete();
-            }
         });
 
         const numpadDeleteBtn = document.getElementById('numpad-delete-btn');
         if (numpadDeleteBtn) {
             numpadDeleteBtn.addEventListener('click', (e) => {
-                e.preventDefault();
                 handleNumpadDelete();
             });
         }
