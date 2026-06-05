@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const emptyState = document.getElementById('timeline-empty-state');
         container.innerHTML = '';
 
-        const payments = await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id);
+        const payments = await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id, true);
         
         if (payments.length === 0) {
             emptyState.style.display = 'block';
@@ -1933,7 +1933,7 @@ img.src = e.target.result;
                     await window.tuitionStore.addStudent(student);
                     
                     // Update all payments to point to the new ID
-                    const payments = await window.tuitionStore.getPaymentsByStudentId(oldId);
+                    const payments = await window.tuitionStore.getPaymentsByStudentId(oldId, true);
                     for (const p of payments) {
                         p.studentId = newId;
                         await window.tuitionStore.updatePayment(p);
@@ -1963,8 +1963,10 @@ img.src = e.target.result;
     }
 
     async function updateAdminDashboard() {
-        const students = await window.tuitionStore.getStudents();
-        const payments = await window.tuitionStore.getPayments();
+        const [students, payments] = await Promise.all([
+            window.tuitionStore.getStudents(),
+            window.tuitionStore.getPayments(true)
+        ]);
 
         // 1. Calculate Analytics
         let totalApprovedCollected = 0;
@@ -2026,7 +2028,7 @@ img.src = e.target.result;
         const tbody = document.getElementById('admin-vault-table-body');
         const emptyState = document.getElementById('vault-empty-state');
 
-        const payments = await window.tuitionStore.getPayments();
+        const payments = await window.tuitionStore.getPayments(true);
         
         // Show all items without filtering
         const filtered = payments.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
@@ -2213,16 +2215,25 @@ img.src = e.target.result;
         const fundingText = getFundingText(student);
 
         // Set inspector headers & info details
-        document.getElementById('inspector-student-name').textContent = `ตรวจสอบสลิป • คุณ${cleanStdName}`;
-        document.getElementById('inspector-payment-meta').textContent = `TXN: ${payment.refNo} • นักเรียน: ${payment.studentId} • ${fundingText}`;
+        document.getElementById('inspector-student-name').textContent = `ตรวจสอบสลิป`;
         
+        const detailFunding = document.getElementById('inspector-detail-funding');
+        if (detailFunding) {
+            detailFunding.innerHTML = `<span class="status-badge ${fundingText === 'กยศ' ? 'badge-gys' : 'badge-self'}">${fundingText}</span>`;
+        }
+        
+        const detailId = document.getElementById('inspector-detail-id');
+        if (detailId) detailId.textContent = payment.studentId;
+        
+        const detailName = document.getElementById('inspector-detail-name');
+        if (detailName) detailName.textContent = cleanStdName;
+
         document.getElementById('inspector-detail-amount').textContent = payment.amount > 0 ? `${payment.amount.toLocaleString()} บาท` : 'ไม่ระบุยอด (อ้างอิงจากสลิป)';
         
         const formattedDate = new Date(payment.dateTime).toLocaleString('th-TH', {
             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
         }).replace(':', '.');
         document.getElementById('inspector-detail-datetime').textContent = `${formattedDate} น.`;
-        document.getElementById('inspector-detail-filename').textContent = payment.slipName || 'slip.png';
 
         // Load Converted PNG image into viewport
         const viewerImg = document.getElementById('inspector-slip-img');
@@ -2317,7 +2328,9 @@ img.src = e.target.result;
             const payment = await window.tuitionStore.getPaymentById(state.inspectorPaymentId);
             if (!payment) return;
 
-            if (navigator.share) {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (isMobile && navigator.share) {
                 try {
                     // Try to share the image as a file (Works on iOS Safari and Android Chrome)
                     if (payment.slipImage.startsWith('data:')) {
@@ -2345,7 +2358,7 @@ img.src = e.target.result;
             } else {
                 // Desktop fallback: Open LINE share URL with text
                 const text = encodeURIComponent(`สลิปการโอนเงิน ยอด ${payment.amount} บาท\nอ้างอิง: ${payment.refNo}`);
-                window.open(`https://social-plugins.line.me/lineit/share?text=${text}`, '_blank');
+                window.open(`https://social-plugins.line.me/lineit/share?text=${text}`, 'lineShare', 'width=500,height=500');
             }
         });
 

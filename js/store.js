@@ -100,6 +100,8 @@ class TuitionStore {
                 const localAvatar = localStorage.getItem(`tuition_avatar_${id}`);
                 if (localAvatar) found.avatar = localAvatar;
                 return found;
+            } else {
+                return null;
             }
         }
 
@@ -123,20 +125,24 @@ class TuitionStore {
     }
 
     async addStudent(student) {
+        const insertData = { ...student };
+        delete insertData.avatar;
+        delete insertData.generation;
+
         const { data, error } = await this.supabase
             .from('students')
-            .insert([student])
+            .insert([insertData])
             .select()
             .single();
         if (error) {
             // Check if column mismatch error (postgrest PGRST102)
             if (error.code === 'PGRST102' || error.message.includes('funding')) {
                 console.warn("Database schema is missing 'funding' column. Falling back to name suffixing...");
-                const { funding, ...fallbackStudent } = student;
-                let cleanName = student.name || '';
+                const { funding, ...fallbackStudent } = insertData;
+                let cleanName = insertData.name || '';
                 if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
                 else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
-                fallbackStudent.name = `${cleanName} (${student.funding || 'จ่ายเอง'})`;
+                fallbackStudent.name = `${cleanName} (${insertData.funding || 'จ่ายเอง'})`;
                 return this.addStudent(fallbackStudent);
             }
             throw error;
@@ -147,6 +153,9 @@ class TuitionStore {
 
     async updateStudent(student) {
         const { id, ...updateData } = student;
+        delete updateData.avatar;
+        delete updateData.generation;
+
         const { data, error } = await this.supabase
             .from('students')
             .update(updateData)
@@ -190,27 +199,36 @@ class TuitionStore {
 
     // --- PAYMENT OPERATIONS ---
 
-    async getPayments() {
-        const cached = this._getCached('payments');
-        if (cached) return cached;
-
-        const { data, error } = await this.supabase
-            .from('payments')
-            .select('*');
-        if (error) throw error;
-        const result = data || [];
-        this._setCache('payments', result);
-        return result;
-    }
-
-    async getPaymentsByStudentId(studentId) {
-        const cacheKey = `payments_${studentId}`;
+    async getPayments(excludeImage = false) {
+        const cacheKey = excludeImage ? 'payments_light' : 'payments';
         const cached = this._getCached(cacheKey);
         if (cached) return cached;
 
+        const columns = excludeImage 
+            ? 'id, studentId, amount, dateTime, slipName, status, refNo, verificationDate, comment' 
+            : '*';
+
         const { data, error } = await this.supabase
             .from('payments')
-            .select('*')
+            .select(columns);
+        if (error) throw error;
+        const result = data || [];
+        this._setCache(cacheKey, result);
+        return result;
+    }
+
+    async getPaymentsByStudentId(studentId, excludeImage = false) {
+        const cacheKey = excludeImage ? `payments_light_${studentId}` : `payments_${studentId}`;
+        const cached = this._getCached(cacheKey);
+        if (cached) return cached;
+
+        const columns = excludeImage 
+            ? 'id, studentId, amount, dateTime, slipName, status, refNo, verificationDate, comment' 
+            : '*';
+
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select(columns)
             .eq('studentId', studentId)
             .order('dateTime', { ascending: false });
         if (error) throw error;

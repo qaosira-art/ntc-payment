@@ -350,7 +350,7 @@
                         <table class="premium-table">
                             <thead>
                                 <tr>
-                                    <th style="text-align: center;">ชำระเงิน</th>
+                                    <th style="text-align: center;">สถานะ</th>
                                     <th style="text-align: center;">รุ่น</th>
                                     <th style="text-align: center;">รหัสนักเรียน</th>
                                     <th style="text-align: center;">ห้อง</th>
@@ -375,10 +375,10 @@
     <!-- SLIDE-IN SIDE PANEL: SLIP INSPECTION        -->
     <!-- ============================================ -->
     <div class="slip-inspector-panel" id="slip-inspector">
-        <div class="inspector-header">
+        <div class="slip-inspector-content">
+            <div class="inspector-header">
             <div>
                 <h3 style="font-size: 18px; font-weight: 700; color: var(--neutral-dark);" id="inspector-student-name">ตรวจสอบสลิป</h3>
-                <p style="font-size: 12px; color: #86868b; font-weight: 500;" id="inspector-payment-meta">TXN ID: #1002 • นักเรียน: สมหญิง รักเรียน</p>
             </div>
             <button class="btn-modern btn-modern-secondary btn-modern-sm" id="btn-close-inspector" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                 <i class="fa-solid fa-xmark"></i>
@@ -402,22 +402,27 @@
             </div>
 
             <!-- Slip details verification grid -->
-            <div style="background: var(--neutral-light); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color:#6e6e73; font-weight:600;">ยอดเงินแจ้งชำระ:</span>
-                    <span style="font-weight: 700; color: var(--primary); font-size: 14px;" id="inspector-detail-amount">20,000 บาท</span>
+            <div style="background: var(--neutral-light); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 14px; align-items: center;">
+                    <span style="color:#6e6e73; font-weight:600;">สถานะ:</span>
+                    <span id="inspector-detail-funding">-</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color:#6e6e73; font-weight:600;">วันเวลาทำรายการ:</span>
-                    <span style="font-weight: 600;" id="inspector-detail-datetime">12/05/2026 14:15 น.</span>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span style="color:#6e6e73; font-weight:600;">รหัสนักเรียน:</span>
+                    <span style="font-weight: 700; color: var(--neutral-dark);" id="inspector-detail-id">-</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color:#6e6e73; font-weight:600;">ชนิดนามสกุลไฟล์หลักฐาน:</span>
-                    <span style="font-weight: 700; color: #10b981;" id="inspector-detail-extension">PNG Image (.png)</span>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span style="color:#6e6e73; font-weight:600;">ชื่อ-นามสกุล:</span>
+                    <span style="font-weight: 700; color: var(--neutral-dark);" id="inspector-detail-name">-</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color:#6e6e73; font-weight:600;">ชื่อไฟล์ที่เก็บในเซิร์ฟเวอร์:</span>
-                    <span style="font-family: monospace; font-size: 11px; font-weight: 600;" id="inspector-detail-filename">slip_STD002_1715523300.png</span>
+                <hr style="border: none; border-top: 1px dashed #d2d2d7; margin: 4px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span style="color:#6e6e73; font-weight:600;">ยอดเงินที่ชำระ:</span>
+                    <span style="font-weight: 700; color: var(--primary); font-size: 16px;" id="inspector-detail-amount">-</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span style="color:#6e6e73; font-weight:600;">วันที่ทำรายการ:</span>
+                    <span style="font-weight: 600; color: var(--neutral-dark);" id="inspector-detail-datetime">-</span>
                 </div>
             </div>
 
@@ -435,6 +440,7 @@
             <button class="btn-modern btn-modern-primary w-100" id="btn-admin-approve-slip" style="flex: 2; height: 46px; background-color: var(--success);">
                 อนุมัติชำระเงิน <i class="fa-solid fa-check"></i>
             </button>
+        </div>
         </div>
     </div>
 
@@ -548,10 +554,10 @@
             </div>
 
             <div id="receipt-slip-viewer" style="display: none; text-align: center;">
-                <img src="" id="receipt-slip-img" style="max-width: 100%; max-height: 80vh; width: auto; object-fit: contain; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" alt="สลิปโอนเงิน">
-                <div>
-                    <a href="#" id="btn-download-slip" download="receipt.png" class="btn-modern btn-modern-primary" style="width: 100%; justify-content: center; text-decoration: none;">
-                        <i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง
+                <div style="display: inline-flex; flex-direction: column; align-items: stretch; max-width: 100%;">
+                    <img src="" id="receipt-slip-img" style="max-width: 100%; max-height: 80vh; width: auto; object-fit: contain; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" alt="สลิปโอนเงิน">
+                    <a href="#" id="btn-download-slip" download="receipt.png" class="btn-modern btn-modern-primary" style="width: 100%; justify-content: center; text-decoration: none; box-sizing: border-box;">
+                        <i class="fa-solid fa-download"></i> SAVE
                     </a>
                 </div>
             </div>
