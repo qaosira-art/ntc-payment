@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบชำระค่าธรรมเนียมการศึกษา - วิทยาลัยเทคโนโลยีนนทบุรี</title>
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0062cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Slip GYS">
+    <link rel="apple-touch-icon" href="assets/logo.png">
     <link rel="stylesheet" href="css/style.css?v=9">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -34,6 +41,9 @@
 
             <!-- Right actions (Logout + Hamburger) -->
             <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="btn-install-pwa" class="header-btn" style="display: none; padding: 6px 12px; background: rgba(0, 102, 204, 0.1); color: var(--primary); border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">
+                    <i class="fa-solid fa-download"></i> <span class="hide-mobile">ติดตั้งแอพ</span>
+                </button>
                 <button id="btn-admin-logout" class="header-logout-btn" title="ออกจากระบบ" style="display: none;">
                     <i class="fa-solid fa-power-off"></i>
                 </button>
@@ -822,6 +832,24 @@
                 </div>
             </div>
             <p id="pin-error" style="color: var(--danger); font-size: 13px; margin-top: 8px; display: none; font-weight: 600;">รหัสไม่ถูกต้อง</p>
+        </div>
+    </div>
+
+    <!-- iOS PWA Install Toast -->
+    <div id="ios-pwa-toast" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 16px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 3000; flex-direction: column; gap: 12px; border: 1px solid rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <img src="assets/logo.png" style="width: 40px; height: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Icon">
+                <div>
+                    <div style="font-weight: 700; font-size: 14px; color: #1d1d1f;">ติดตั้งแอพ Slip GYS</div>
+                    <div style="font-size: 12px; color: #86868b;">เพื่อให้ใช้งานได้เหมือนแอพพลิเคชัน</div>
+                </div>
+            </div>
+            <button id="btn-close-ios-toast" style="background: none; border: none; font-size: 16px; color: #86868b; cursor: pointer; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="background: #f5f5f7; border-radius: 8px; padding: 12px; font-size: 13px; color: #1d1d1f; line-height: 1.5;">
+            กดไอคอน <b>แชร์ <i class="fa-solid fa-arrow-up-from-bracket"></i></b> ด้านล่างสุดของเบราว์เซอร์<br>
+            แล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม" <i class="fa-solid fa-square-plus"></i></b>
         </div>
     </div>
 

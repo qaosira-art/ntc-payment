@@ -2586,5 +2586,64 @@ img.src = e.target.result;
         };
     }
 
+    // --- PWA Installation Logic ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('btn-install-pwa');
+    const iosToast = document.getElementById('ios-pwa-toast');
+    const btnCloseIosToast = document.getElementById('btn-close-ios-toast');
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
+        });
+    }
+
+    // Android/Chrome Install Prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) installBtn.style.display = 'flex';
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', (e) => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+                if (isIos) {
+                    iosToast.style.display = 'flex';
+                } else {
+                    alert("กรุณากดเมนูจุดๆ ของเบราว์เซอร์แล้วเลือก 'Add to Home Screen' (เพิ่มลงในหน้าจอหลัก) หรือ 'ติดตั้งแอป'");
+                }
+            }
+        });
+    }
+
+    // iOS Check for displaying the button anyway since beforeinstallprompt doesn't fire
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    if (isIos && !isInStandaloneMode && installBtn) {
+        installBtn.style.display = 'flex';
+    }
+
+    if (btnCloseIosToast) {
+        btnCloseIosToast.addEventListener('click', () => {
+            iosToast.style.display = 'none';
+        });
+    }
+
+    window.addEventListener('appinstalled', (evt) => {
+        if (installBtn) installBtn.style.display = 'none';
+        if (iosToast) iosToast.style.display = 'none';
+    });
 
 });
