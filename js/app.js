@@ -499,10 +499,13 @@ document.addEventListener('DOMContentLoaded', () => {
             hiddenPin.dispatchEvent(new Event('input'));
         }
         
-        // Focus first input
-        setTimeout(() => {
-            if (hiddenPin) hiddenPin.focus();
-        }, 100);
+        // Focus input (only on desktop to prevent mobile keyboard animation conflict)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (!isMobile) {
+            setTimeout(() => {
+                if (hiddenPin) hiddenPin.focus();
+            }, 100);
+        }
     }
 
     function setupPinModal() {
