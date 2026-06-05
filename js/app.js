@@ -489,10 +489,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openStudentPinModal(student) {
         pendingStudentLogin = student;
-        document.getElementById('modal-student-pin').classList.add('active');
         document.getElementById('pin-error').style.display = 'none';
         
-        // Clear all inputs
+        // Clear all inputs and sync UI BEFORE starting transition
         const hiddenPin = document.getElementById('hidden-pin-input');
         if (hiddenPin) {
             hiddenPin.value = '';
@@ -500,7 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Force a layout recalculation to prevent Safari first-render glitch
-        void document.getElementById('modal-student-pin').offsetWidth;
+        const modal = document.getElementById('modal-student-pin');
+        void modal.offsetWidth;
+        
+        // Now trigger the CSS animation
+        modal.classList.add('active');
     }
 
     function setupPinModal() {
