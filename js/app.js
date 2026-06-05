@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         pinDisplays.forEach((disp, i) => {
             if (i < currentPin.length) {
-                disp.textContent = '•';
+                disp.textContent = currentPin[i];
                 disp.classList.add('focused-box');
             } else {
                 disp.textContent = '';
