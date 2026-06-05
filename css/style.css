@@ -2194,7 +2194,7 @@ html.no-scroll, body.no-scroll {
 }
 
 /* PIN Auth Modal */
-input.pin-box {
+.pin-box {
     width: 54px !important;
     height: 60px !important;
     padding: 0 !important;
@@ -2208,8 +2208,12 @@ input.pin-box {
     color: #0062cc !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
-input.pin-box:focus {
+.pin-box.focused-box, input.pin-box:focus {
     background: #ffffff !important;
     border-color: var(--primary) !important;
     box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15) !important;
@@ -2221,6 +2225,9 @@ input.pin-box:focus {
         display: block; /* Remove flex to stop iOS from jumping when keyboard resizes viewport */
         overflow-y: auto;
         padding-top: 15vh; /* Anchor it near the top */
+        backdrop-filter: none; /* Disable blur to fix input lag and screen flickering */
+        -webkit-backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.6);
     }
     #modal-student-pin .premium-modal-content {
         margin: 0 auto;

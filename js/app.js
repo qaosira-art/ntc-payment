@@ -493,22 +493,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('pin-error').style.display = 'none';
         
         // Clear all inputs
-        for (let i = 1; i <= 4; i++) {
-            document.getElementById('pin' + i).value = '';
+        const hiddenPin = document.getElementById('hidden-pin-input');
+        if (hiddenPin) {
+            hiddenPin.value = '';
+            hiddenPin.dispatchEvent(new Event('input'));
         }
         
         // Focus first input
         setTimeout(() => {
-            document.getElementById('pin1').focus();
+            if (hiddenPin) hiddenPin.focus();
         }, 100);
     }
 
     function setupPinModal() {
-        const backdrop = document.getElementById('backdrop-student-pin');
         const modal = document.getElementById('modal-student-pin');
         const errorText = document.getElementById('pin-error');
+        const hiddenPin = document.getElementById('hidden-pin-input');
         
-        if (!modal) return;
+        if (!modal || !hiddenPin) return;
 
         // Close modal when clicking outside the content (on the modal container itself)
         modal.addEventListener('click', (e) => {
@@ -519,40 +521,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Setup PIN inputs behavior
-        const pins = [
-            document.getElementById('pin1'),
-            document.getElementById('pin2'),
-            document.getElementById('pin3'),
-            document.getElementById('pin4')
+        const pinDisplays = [
+            document.getElementById('pin1-display'),
+            document.getElementById('pin2-display'),
+            document.getElementById('pin3-display'),
+            document.getElementById('pin4-display')
         ];
 
-        pins.forEach((pin, index) => {
-            pin.addEventListener('input', (e) => {
-                // Ensure only numbers
-                pin.value = pin.value.replace(/[^0-9]/g, '');
-                
-                if (pin.value.length === 1) {
-                    errorText.style.display = 'none';
-                    if (index < 3) {
-                        pins[index + 1].focus();
-                    } else {
-                        // Last pin filled, verify automatically
-                        verifyPin();
-                    }
+        hiddenPin.addEventListener('input', (e) => {
+            // Ensure only numbers
+            hiddenPin.value = hiddenPin.value.replace(/[^0-9]/g, '');
+            const val = hiddenPin.value;
+            
+            // Update UI boxes
+            pinDisplays.forEach((disp, i) => {
+                disp.textContent = val[i] || '';
+                if (i === val.length || (i === 3 && val.length === 4)) {
+                    disp.classList.add('focused-box');
+                } else {
+                    disp.classList.remove('focused-box');
                 }
             });
+            
+            errorText.style.display = 'none';
 
-            pin.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && pin.value === '' && index > 0) {
-                    pins[index - 1].focus();
-                }
-            });
+            if (val.length === 4) {
+                verifyPin();
+            }
         });
 
         function verifyPin() {
             if (!pendingStudentLogin) return;
             
-            const enteredPin = pins.map(p => p.value).join('');
+            const enteredPin = hiddenPin.value;
             if (enteredPin.length !== 4) return;
             
             // Get last 4 digits of student ID
@@ -570,9 +571,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 content.style.animation = 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both';
                 setTimeout(() => { content.style.animation = ''; }, 400);
                 
-                // Clear inputs and refocus
-                pins.forEach(p => p.value = '');
-                pins[0].focus();
+                // Clear input and refocus
+                hiddenPin.value = '';
+                hiddenPin.dispatchEvent(new Event('input'));
+                hiddenPin.focus();
             }
         }
     }
@@ -2340,25 +2342,19 @@ img.src = e.target.result;
                         
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             await navigator.share({
-                                title: 'สลิปการโอนเงิน',
-                                text: `ตรวจสอบสลิปการโอนเงิน ยอด ${payment.amount} บาท (อ้างอิง: ${payment.refNo})`,
                                 files: [file]
                             });
                             return;
                         }
                     }
-                    // Fallback to text if file sharing is unsupported
-                    await navigator.share({
-                        title: 'สลิปการโอนเงิน',
-                        text: `ตรวจสอบสลิปการโอนเงิน ยอด ${payment.amount} บาท (อ้างอิง: ${payment.refNo})`
-                    });
+                    // Fallback if file sharing is unsupported
+                    alert("เบราว์เซอร์ของคุณไม่รองรับการแชร์ไฟล์รูปภาพโดยตรง กรุณากดปุ่มดาวน์โหลดแทนครับ");
                 } catch (err) {
                     console.log('User cancelled share or share failed', err);
                 }
             } else {
-                // Desktop fallback: Open LINE share URL with text
-                const text = encodeURIComponent(`สลิปการโอนเงิน ยอด ${payment.amount} บาท\nอ้างอิง: ${payment.refNo}`);
-                window.open(`https://social-plugins.line.me/lineit/share?text=${text}`, 'lineShare', 'width=500,height=500');
+                // Desktop fallback: Cannot share image blob via LINE URL
+                alert("บนคอมพิวเตอร์ ระบบแชร์ของ LINE ไม่รองรับการแนบรูปภาพโดยตรง\n\nแนะนำให้กดปุ่ม 'ดาวน์โหลดไฟล์สลิป' แล้วลากรูปที่โหลดไปวางในช่องแชท LINE แทนครับ!");
             }
         });
 
