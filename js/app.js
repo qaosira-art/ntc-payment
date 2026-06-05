@@ -2589,8 +2589,19 @@ img.src = e.target.result;
     // --- PWA Installation Logic ---
     let deferredPrompt;
     const installBtn = document.getElementById('btn-install-pwa');
+    const installDivider = document.getElementById('install-pwa-divider');
     const iosToast = document.getElementById('ios-pwa-toast');
     const btnCloseIosToast = document.getElementById('btn-close-ios-toast');
+
+    function showInstallButton() {
+        if (installBtn) installBtn.style.display = 'flex';
+        if (installDivider) installDivider.style.display = 'block';
+    }
+
+    function hideInstallButton() {
+        if (installBtn) installBtn.style.display = 'none';
+        if (installDivider) installDivider.style.display = 'none';
+    }
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -2603,16 +2614,24 @@ img.src = e.target.result;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if (installBtn) installBtn.style.display = 'flex';
+        showInstallButton();
     });
 
     if (installBtn) {
         installBtn.addEventListener('click', (e) => {
+            // Close mobile menu if open
+            const dropdown = document.getElementById('mobile-nav-dropdown');
+            const hamburger = document.getElementById('btn-hamburger');
+            if (dropdown && dropdown.classList.contains('active')) {
+                dropdown.classList.remove('active');
+                hamburger.classList.remove('active');
+            }
+
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        installBtn.style.display = 'none';
+                        hideInstallButton();
                     }
                     deferredPrompt = null;
                 });
@@ -2632,7 +2651,7 @@ img.src = e.target.result;
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
 
     if (isIos && !isInStandaloneMode && installBtn) {
-        installBtn.style.display = 'flex';
+        showInstallButton();
     }
 
     if (btnCloseIosToast) {
@@ -2642,7 +2661,7 @@ img.src = e.target.result;
     }
 
     window.addEventListener('appinstalled', (evt) => {
-        if (installBtn) installBtn.style.display = 'none';
+        hideInstallButton();
         if (iosToast) iosToast.style.display = 'none';
     });
 

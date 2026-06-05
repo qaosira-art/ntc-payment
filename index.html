@@ -41,9 +41,6 @@
 
             <!-- Right actions (Logout + Hamburger) -->
             <div style="display: flex; align-items: center; gap: 12px;">
-                <button id="btn-install-pwa" class="header-btn" style="display: none; padding: 6px 12px; background: rgba(0, 102, 204, 0.1); color: var(--primary); border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">
-                    <i class="fa-solid fa-download"></i> <span class="hide-mobile">ติดตั้งแอพ</span>
-                </button>
                 <button id="btn-admin-logout" class="header-logout-btn" title="ออกจากระบบ" style="display: none;">
                     <i class="fa-solid fa-power-off"></i>
                 </button>
@@ -71,6 +68,14 @@
                 <div class="mobile-nav-details">
                     <span class="mobile-nav-title">ที่ปรึกษา</span>
                     <span class="mobile-nav-subtitle">ตรวจสอบหลักฐาน / จัดการข้อมูล</span>
+                </div>
+            </button>
+            <div id="install-pwa-divider" class="mobile-nav-divider" style="display: none;"></div>
+            <button class="mobile-nav-item" id="btn-install-pwa" style="display: none; background: rgba(0, 102, 204, 0.04);">
+                <div class="mobile-nav-icon" style="color: var(--primary); background: rgba(0, 102, 204, 0.1);"><i class="fa-solid fa-download"></i></div>
+                <div class="mobile-nav-details">
+                    <span class="mobile-nav-title" style="color: var(--primary);">ติดตั้งแอปพลิเคชัน</span>
+                    <span class="mobile-nav-subtitle">เพิ่มไอคอนแอปไว้ที่หน้าจอโฮม</span>
                 </div>
             </button>
         </div>
