@@ -587,11 +587,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const avatarImg = document.getElementById('student-display-avatar');
         const cropModal = document.getElementById('modal-crop-profile');
         const cropImg = document.getElementById('crop-preview-img');
-        const zoomRange = document.getElementById('crop-zoom-range');
         const btnCancelCrop = document.getElementById('btn-cancel-crop');
         const btnSaveCrop = document.getElementById('btn-save-crop');
         
-        if (!uploadInput || !avatarImg || !cropModal || !cropImg || !zoomRange || !btnCancelCrop || !btnSaveCrop) return;
+        if (!uploadInput || !avatarImg || !cropModal || !cropImg || !btnCancelCrop || !btnSaveCrop) return;
 
         let imgW = 0;
         let imgH = 0;
@@ -643,27 +642,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentY = (viewportSize - fitH) / 2;
             currentZoom = 1;
             
-            zoomRange.value = 1;
-            
             updatePreviewTransform();
         };
 
         function updatePreviewTransform() {
-            // Clamping bounds to prevent transparent areas showing:
-            const viewportSize = 280;
-            const wRendered = fitW * currentZoom;
-            const hRendered = fitH * currentZoom;
-            
-            const minX = viewportSize - wRendered;
-            const minY = viewportSize - hRendered;
-            const maxX = 0;
-            const maxY = 0;
-
-            if (currentX < minX) currentX = minX;
-            if (currentX > maxX) currentX = maxX;
-            if (currentY < minY) currentY = minY;
-            if (currentY > maxY) currentY = maxY;
-
             cropImg.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentZoom})`;
         }
 
@@ -701,29 +683,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.addEventListener('mouseup', stopDrag);
 
-        // Touch listeners
+        // Touch listeners & Pinch to Zoom
+        let initialPinchDist = 0;
+        let initialPinchZoom = 1;
+
         cropImg.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
                 startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                initialPinchDist = Math.sqrt(dx*dx + dy*dy);
+                initialPinchZoom = currentZoom;
             }
-        });
+        }, {passive: false});
 
-        window.addEventListener('touchmove', (e) => {
+        cropModal.addEventListener('touchmove', (e) => {
             if (isDragging && e.touches.length === 1) {
+                e.preventDefault();
                 moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            } else if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                const oldZoom = currentZoom;
+                currentZoom = initialPinchZoom * (dist / initialPinchDist);
+                
+                if (currentZoom < 0.2) currentZoom = 0.2;
+                if (currentZoom > 10) currentZoom = 10;
+                
+                // Zoom around center
+                const cx = 140;
+                const cy = 140;
+                
+                const imgX = (cx - currentX) / oldZoom;
+                const imgY = (cy - currentY) / oldZoom;
+                
+                currentX = cx - imgX * currentZoom;
+                currentY = cy - imgY * currentZoom;
+                
+                updatePreviewTransform();
             }
-        }, { passive: true });
+        }, { passive: false });
 
         window.addEventListener('touchend', stopDrag);
 
-        // Zoom range change
-        zoomRange.addEventListener('input', () => {
+        // Mouse wheel to zoom
+        cropImg.parentElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
             const oldZoom = currentZoom;
-            currentZoom = parseFloat(zoomRange.value);
-            
-            // Zoom relative to viewport center (140, 140)
-            const cx = 140;
-            const cy = 140;
+            if (e.deltaY < 0) {
+                currentZoom *= 1.1;
+            } else {
+                currentZoom /= 1.1;
+            }
+            if (currentZoom < 0.2) currentZoom = 0.2;
+            if (currentZoom > 10) currentZoom = 10;
+
+            const rect = cropImg.parentElement.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
             
             const imgX = (cx - currentX) / oldZoom;
             const imgY = (cy - currentY) / oldZoom;
