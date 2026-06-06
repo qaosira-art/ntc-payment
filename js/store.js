@@ -78,6 +78,14 @@ class TuitionStore {
             .select('*');
         if (error) throw error;
         const result = data || [];
+
+        // Sort by created_at ascending to ensure stable positioning (new students go to the end)
+        if (result.length > 0 && result[0].created_at !== undefined) {
+            result.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        } else {
+            // Fallback to alphabetical sorting by student ID
+            result.sort((a, b) => a.id.localeCompare(b.id));
+        }
         
         // Apply local avatar overrides
         result.forEach(student => {
@@ -839,6 +847,63 @@ class TuitionStore {
         ctx.restore();
 
         return canvas.toDataURL('image/png');
+    }
+
+    async saveIntroCard(studentId, cardId, imageBase64, commentText) {
+        const uniqueRefNo = `CARD-${cardId}-${Date.now()}`;
+        const paymentData = {
+            studentId: studentId,
+            amount: 0,
+            dateTime: new Date().toISOString().slice(0, 19),
+            slipImage: imageBase64,
+            slipName: `card_${cardId}_${Date.now()}.png`,
+            status: 'card',
+            refNo: uniqueRefNo,
+            verificationDate: new Date().toISOString().slice(0, 19),
+            comment: commentText || 'ภาพฝึกงานนักศึกษา'
+        };
+
+        // Always insert new record for multiple uploads support
+        const { data, error } = await this.supabase
+            .from('payments')
+            .insert([paymentData])
+            .select()
+            .single();
+        if (error) throw error;
+        this.invalidateCache();
+        return data;
+    }
+
+    /**
+     * Fetch all saved student intro cards from the database.
+     */
+    async getIntroCards() {
+        const cached = this._getCached('intro_cards');
+        if (cached) return cached;
+
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select('*')
+            .eq('status', 'card')
+            .order('dateTime', { ascending: false });
+        if (error) throw error;
+        
+        const result = data || [];
+        this._setCache('intro_cards', result);
+        return result;
+    }
+
+    /**
+     * Delete student intro card.
+     */
+    async deleteIntroCard(paymentId) {
+        const { error } = await this.supabase
+            .from('payments')
+            .delete()
+            .eq('id', paymentId);
+        if (error) throw error;
+        this.invalidateCache();
+        return true;
     }
 }
 

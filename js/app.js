@@ -928,7 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Fetch payments
             const payments = await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id);
-            const slipPayments = payments.filter(p => p.slipImage);
+            const slipPayments = payments.filter(p => p.slipImage && p.status !== 'card');
 
             if (slipPayments.length === 0) {
                 emptyState.style.display = 'block';
@@ -1174,7 +1174,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const emptyState = document.getElementById('timeline-empty-state');
         container.innerHTML = '';
 
-        const payments = await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id, true);
+        const payments = (await window.tuitionStore.getPaymentsByStudentId(state.currentStudent.id, true))
+            .filter(p => p.status !== 'card');
         
         if (payments.length === 0) {
             emptyState.style.display = 'block';
@@ -1907,28 +1908,43 @@ img.src = e.target.result;
         // Admin Tabs switching
         const tabVault = document.getElementById('btn-admin-tab-vault');
         const tabStudents = document.getElementById('btn-admin-tab-students');
+        const tabCards = document.getElementById('btn-admin-tab-cards');
         const contentVault = document.getElementById('admin-tab-vault');
         const contentStudents = document.getElementById('admin-tab-students');
+        const contentCards = document.getElementById('admin-tab-cards');
+
+        function selectAdminTab(tabName) {
+            state.activeAdminTab = tabName;
+            
+            // Buttons active state
+            tabVault.classList.toggle('active', tabName === 'vault');
+            tabStudents.classList.toggle('active', tabName === 'students');
+            if (tabCards) tabCards.classList.toggle('active', tabName === 'cards');
+            
+            // Panels display state
+            contentVault.style.display = tabName === 'vault' ? 'block' : 'none';
+            contentStudents.style.display = tabName === 'students' ? 'block' : 'none';
+            if (contentCards) contentCards.style.display = tabName === 'cards' ? 'block' : 'none';
+            
+            updateAdminDashboard();
+        }
 
         tabVault.addEventListener('click', () => {
             if (state.activeAdminTab === 'vault') return;
-            tabVault.classList.add('active');
-            tabStudents.classList.remove('active');
-            contentVault.style.display = 'block';
-            contentStudents.style.display = 'none';
-            state.activeAdminTab = 'vault';
-            updateAdminDashboard();
+            selectAdminTab('vault');
         });
 
         tabStudents.addEventListener('click', () => {
             if (state.activeAdminTab === 'students') return;
-            tabStudents.classList.add('active');
-            tabVault.classList.remove('active');
-            contentStudents.style.display = 'block';
-            contentVault.style.display = 'none';
-            state.activeAdminTab = 'students';
-            updateAdminDashboard();
+            selectAdminTab('students');
         });
+
+        if (tabCards) {
+            tabCards.addEventListener('click', () => {
+                if (state.activeAdminTab === 'cards') return;
+                selectAdminTab('cards');
+            });
+        }
 
         // Add Student trigger modal
         document.getElementById('btn-admin-add-student-trigger').addEventListener('click', () => {
@@ -2130,6 +2146,8 @@ img.src = e.target.result;
         // 2. Render active lists
         if (state.activeAdminTab === 'vault') {
             await renderAdminVaultList();
+        } else if (state.activeAdminTab === 'cards') {
+            await renderAdminCardsList();
         } else {
             await renderAdminStudentsList();
         }
@@ -2159,10 +2177,16 @@ img.src = e.target.result;
             tbody.closest('table').style.display = 'table';
         }
 
+        const studentsList = await window.tuitionStore.getStudents();
+        const studentMap = {};
+        studentsList.forEach(s => {
+            studentMap[s.id] = s;
+        });
+
         const fragment = document.createDocumentFragment();
 
         for (const payment of filtered) {
-            const student = await window.tuitionStore.getStudentById(payment.studentId);
+            const student = studentMap[payment.studentId];
             const stdName = student ? student.name : 'Unknown';
             const cleanStdName = getCleanName(stdName);
             const fundingText = getFundingText(student);
@@ -2314,6 +2338,281 @@ img.src = e.target.result;
                 }
             });
         });
+    }
+
+    /**
+     * Render the grid gallery of student introduction cards in the Admin Portal.
+     */
+    async function renderAdminCardsList() {
+        const gallery = document.getElementById('admin-cards-gallery');
+        const emptyState = document.getElementById('cards-empty-state');
+        if (!gallery || !emptyState) return;
+
+        gallery.innerHTML = '';
+        
+        try {
+            const cards = await window.tuitionStore.getIntroCards();
+            
+            if (cards.length === 0) {
+                emptyState.style.display = 'block';
+                gallery.style.display = 'none';
+                return;
+            }
+
+            const studentsList = await window.tuitionStore.getStudents();
+            const studentMap = {};
+            studentsList.forEach(s => {
+                studentMap[s.id] = s;
+            });
+
+            emptyState.style.display = 'none';
+            gallery.style.display = 'grid';
+
+            // Precalculate chronological sequence numbers per student (oldest to newest)
+            const cardSeqMap = {};
+            const cardsWithId = cards.map(c => {
+                let actualId = c.studentId;
+                if (c.comment && c.comment.startsWith('CARD_INFO:')) {
+                    try {
+                        const info = JSON.parse(c.comment.substring(10));
+                        actualId = info.id;
+                    } catch (e) {}
+                }
+                return { c, actualId, time: c.dateTime ? new Date(c.dateTime).getTime() : 0 };
+            });
+            // Sort ascending by time
+            cardsWithId.sort((a, b) => a.time - b.time);
+            const studentCounts = {};
+            cardsWithId.forEach(item => {
+                const id = item.actualId;
+                if (!studentCounts[id]) {
+                    studentCounts[id] = 0;
+                }
+                studentCounts[id]++;
+                cardSeqMap[item.c.id] = studentCounts[id];
+            });
+
+            // Group cards by student and sort chronologically within the group
+            const earliestUploadMap = {};
+            const cardToStudentIdMap = {};
+            cardsWithId.forEach(item => {
+                cardToStudentIdMap[item.c.id] = item.actualId;
+                if (earliestUploadMap[item.actualId] === undefined) {
+                    earliestUploadMap[item.actualId] = item.time;
+                }
+            });
+
+            cards.sort((a, b) => {
+                const sIdA = cardToStudentIdMap[a.id];
+                const sIdB = cardToStudentIdMap[b.id];
+                
+                const earliestA = earliestUploadMap[sIdA] || 0;
+                const earliestB = earliestUploadMap[sIdB] || 0;
+                
+                if (earliestA !== earliestB) {
+                    return earliestA - earliestB; // Group by student earliest upload
+                }
+                
+                const timeA = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+                const timeB = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+                return timeA - timeB; // Chronological order inside student's group
+            });
+
+            for (const card of cards) {
+                let cleanName = 'ไม่ระบุชื่อ';
+                let cardId = card.studentId;
+                let rawRoom = '';
+                let rawYear = '';
+
+                if (card.comment && card.comment.startsWith('CARD_INFO:')) {
+                    try {
+                        const info = JSON.parse(card.comment.substring(10));
+                        cleanName = info.name;
+                        cardId = info.id;
+                        rawRoom = info.room || '';
+                        rawYear = info.year || '';
+                    } catch (e) {
+                        console.error("Error parsing card info:", e);
+                    }
+                } else {
+                    const student = studentMap[card.studentId];
+                    const stdName = student ? student.name : 'ไม่ระบุชื่อ';
+                    cleanName = getCleanName(stdName);
+                    rawRoom = student ? (student.room || '') : '';
+                    rawYear = student ? (student.year || '') : '';
+                }
+
+                // Clean prefix labels from inputs if they exist (e.g. "ห้อง ", "รุ่น ")
+                let schoolName = rawRoom.trim();
+                if (schoolName.startsWith('ห้อง ')) {
+                    schoolName = schoolName.substring(5).trim();
+                }
+                let workplaceName = rawYear.trim();
+                if (workplaceName.startsWith('รุ่น ')) {
+                    workplaceName = workplaceName.substring(5).trim();
+                }
+
+                if (!schoolName) schoolName = '-';
+                if (!workplaceName) workplaceName = '-';
+
+                const seq = cardSeqMap[card.id] || 1;
+                const downloadFilename = `${cleanName} ${cardId} (${seq}).png`;
+
+                const formattedDate = new Date(card.dateTime).toLocaleString('th-TH', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                }).replace(':', '.');
+
+                const item = document.createElement('div');
+                item.className = 'slip-gallery-card';
+                item.style.background = 'var(--neutral-light)';
+                item.style.borderRadius = '16px';
+                item.style.padding = '16px';
+                item.style.border = '1px solid var(--neutral-border)';
+                item.style.display = 'flex';
+                item.style.flexDirection = 'column';
+                item.style.gap = '12px';
+                item.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease';
+                
+                item.onmouseover = () => {
+                    item.style.transform = 'translateY(-4px)';
+                    item.style.boxShadow = 'var(--shadow-md)';
+                };
+                item.onmouseout = () => {
+                    item.style.transform = 'none';
+                    item.style.boxShadow = 'none';
+                };
+
+                item.innerHTML = `
+                    <div class="card-image-box" style="width: 100%; height: 260px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid var(--neutral-border); position: relative; cursor: pointer;">
+                        <img src="${card.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="ภาพฝึกงาน">
+                        <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                            <i class="fa-solid fa-expand"></i>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark);">${cleanName} (${seq})</div>
+                        <div style="font-size: 12px; color: #86868b; font-weight: 500;">รหัสประจำตัว: ${cardId}</div>
+                        <div style="font-size: 12px; color: #86868b; font-weight: 500;">โรงเรียนเดิม: ${schoolName}</div>
+                        <div style="font-size: 12px; color: #86868b; font-weight: 500;">สถานที่ทำงาน: ${workplaceName}</div>
+                        <div style="font-size: 11px; color: #aeaeb2; font-weight: 500; margin-top: 4px;">บันทึกเมื่อ: ${formattedDate}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-download-card" data-href="${card.slipImage}" data-filename="${downloadFilename}" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <i class="fa-solid fa-download"></i> ดาวน์โหลด
+                        </button>
+                        <button class="btn-modern btn-modern-danger btn-modern-sm btn-admin-delete-card" data-card-id="${card.id}" data-student-name="${cleanName}" style="height: 36px; width: 36px; min-width: 36px; padding: 0; font-size: 13px; display: flex; align-items: center; justify-content: center;" title="ลบรูปภาพ">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+
+                // Expand preview image click handler
+                item.querySelector('.card-image-box').addEventListener('click', () => {
+                    const modal = document.getElementById('modal-receipt');
+                    const modalContent = document.querySelector('#modal-receipt .premium-modal-content');
+                    const slipViewer = document.getElementById('receipt-slip-viewer');
+                    const slipImg = document.getElementById('receipt-slip-img');
+                    const downloadBtn = document.getElementById('btn-download-slip');
+                    
+                    if (modal && slipViewer && slipImg) {
+                        slipViewer.style.display = 'block';
+                        slipImg.src = card.slipImage;
+                        if (downloadBtn) {
+                            downloadBtn.href = card.slipImage;
+                            downloadBtn.download = downloadFilename;
+                        }
+                        
+                        const paperReceipt = document.querySelector('.receipt-paper');
+                        if (paperReceipt) paperReceipt.style.display = 'none';
+                        const printBtn = document.getElementById('btn-receipt-print');
+                        if (printBtn && printBtn.parentElement) printBtn.parentElement.style.display = 'none';
+
+                        if (modalContent) {
+                            modalContent.style.background = 'transparent';
+                            modalContent.style.border = 'none';
+                            modalContent.style.boxShadow = 'none';
+                            modalContent.style.padding = '0';
+                            modalContent.style.position = 'relative';
+                        }
+                        
+                        const closeBtn = document.getElementById('btn-close-receipt-modal');
+                        if (closeBtn) {
+                            closeBtn.style.background = 'rgba(0,0,0,0.55)';
+                            closeBtn.style.color = '#fff';
+                            closeBtn.style.border = 'none';
+                            closeBtn.style.position = 'absolute';
+                            closeBtn.style.top = '-12px';
+                            closeBtn.style.right = '-12px';
+                            closeBtn.style.zIndex = '10';
+                            
+                            closeBtn.onclick = () => {
+                                modal.classList.remove('active');
+                                if (modalContent) {
+                                    modalContent.style.background = '';
+                                    modalContent.style.border = '';
+                                    modalContent.style.boxShadow = '';
+                                    modalContent.style.padding = '';
+                                    modalContent.style.position = '';
+                                }
+                                closeBtn.style.background = '';
+                                closeBtn.style.color = '';
+                                closeBtn.style.border = '';
+                                closeBtn.style.position = '';
+                                closeBtn.style.top = '';
+                                closeBtn.style.right = '';
+                                closeBtn.style.zIndex = '';
+                            };
+                        }
+                        
+                        modal.classList.add('active');
+                    }
+                });
+
+                gallery.appendChild(item);
+            }
+
+            // Bind download buttons
+            gallery.querySelectorAll('.btn-admin-download-card').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const a = document.createElement('a');
+                    a.href = btn.getAttribute('data-href');
+                    a.download = btn.getAttribute('data-filename');
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            });
+
+            // Bind delete buttons
+            gallery.querySelectorAll('.btn-admin-delete-card').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const cardId = btn.getAttribute('data-card-id');
+                    const studentName = btn.getAttribute('data-student-name');
+                    
+                    if (confirm(`คุณแน่ใจหรือไม่ที่จะลบรูปภาพฝึกงานของ "${studentName}"?\nการดำเนินการนี้ไม่สามารถย้อนคืนได้`)) {
+                        try {
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                            await window.tuitionStore.deleteIntroCard(cardId);
+                            alert('ลบรูปภาพฝึกงานเรียบร้อยแล้ว');
+                            await notifyDbUpdate('payments', 'ALL');
+                        } catch (err) {
+                            console.error('Delete card error:', err);
+                            alert(`❌ เกิดข้อผิดพลาดในการลบรูปภาพ: ${err.message || JSON.stringify(err)}`);
+                        } finally {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                        }
+                    }
+                });
+            });
+
+        } catch (err) {
+            console.error('Render admin cards error:', err);
+            gallery.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger-text); padding: 40px;"><i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถดึงข้อมูลรูปภาพการแนะนำตัวได้: ${err.message || JSON.stringify(err)}</div>`;
+        }
     }
 
     // =========================================================================
@@ -2921,6 +3220,7 @@ img.src = e.target.result;
         const btnClearImg = document.getElementById('btn-clear-img');
         
         const line1Input = document.getElementById('img-tool-line1');
+        const rahasInput = document.getElementById('img-tool-rahas');
         const line2Input = document.getElementById('img-tool-line2');
         const line3Input = document.getElementById('img-tool-line3');
         
@@ -2929,6 +3229,7 @@ img.src = e.target.result;
         const lblLine3 = document.getElementById('preview-lbl-line3');
         
         let img = new Image();
+        let hasImage = false;
         let scale = 1;
         let offsetX = 0;
         let offsetY = 0;
@@ -2938,8 +3239,11 @@ img.src = e.target.result;
         const wrapperWidth = 380; // 380px outer (no borders)
         const wrapperHeight = 400; // HTML crop wrapper is 400px high
 
-        function getLine1Default() {
-            return state.currentStudent ? `${state.currentStudent.name} รหัส ${state.currentStudent.id}` : 'นายศิระ ยอแสง รหัส 250001';
+        function getLine1DefaultName() {
+            return state.currentStudent ? getCleanName(state.currentStudent.name) : 'นายศิระ ยอแสง';
+        }
+        function getLine1DefaultRahas() {
+            return state.currentStudent ? state.currentStudent.id : '250001';
         }
         function getLine2Default() {
             return 'โรงเรียนเดิม';
@@ -2950,22 +3254,33 @@ img.src = e.target.result;
 
         // Sync inputs with preview labels
         function updateLabels() {
-            lblLine1.textContent = line1Input.value || getLine1Default();
-            lblLine2.textContent = line2Input.value || getLine2Default();
-            lblLine3.textContent = line3Input.value || getLine3Default();
+            const namePart = line1Input.value.trim() || getLine1DefaultName();
+            const rahasPart = rahasInput.value.trim() || getLine1DefaultRahas();
+            lblLine1.textContent = `${namePart} รหัส ${rahasPart}`;
+            lblLine2.textContent = line2Input.value.trim() || getLine2Default();
+            lblLine3.textContent = line3Input.value.trim() || getLine3Default();
         }
         
-        [line1Input, line2Input, line3Input].forEach(inp => {
-            inp.addEventListener('input', updateLabels);
+        [line1Input, rahasInput, line2Input, line3Input].forEach(inp => {
+            if (inp) inp.addEventListener('input', updateLabels);
         });
 
         // Initialize values when student logs in
         function populateDefaults() {
-            line1Input.value = '';
-            line2Input.value = '';
-            line3Input.value = '';
+            if (state.currentStudent) {
+                line1Input.value = getCleanName(state.currentStudent.name);
+                rahasInput.value = state.currentStudent.id;
+                line2Input.value = 'ห้อง ' + (state.currentStudent.room || '');
+                line3Input.value = 'รุ่น ' + (state.currentStudent.year || '');
+            } else {
+                line1Input.value = '';
+                rahasInput.value = '';
+                line2Input.value = '';
+                line3Input.value = '';
+            }
             
-            line1Input.placeholder = getLine1Default();
+            line1Input.placeholder = getLine1DefaultName();
+            rahasInput.placeholder = getLine1DefaultRahas();
             line2Input.placeholder = getLine2Default();
             line3Input.placeholder = getLine3Default();
             
@@ -2984,6 +3299,8 @@ img.src = e.target.result;
         }
         
         img.onload = () => {
+            if (!img.src) return;
+            hasImage = true;
             previewImg.src = img.src;
             previewImg.style.display = 'block';
             previewPlaceholder.style.display = 'none';
@@ -3022,7 +3339,8 @@ img.src = e.target.result;
                 e.stopPropagation(); // Prevent opening file chooser
                 
                 // Reset state variables
-                img = new Image();
+                img.src = '';
+                hasImage = false;
                 scale = 1;
                 offsetX = 0;
                 offsetY = 0;
@@ -3038,12 +3356,13 @@ img.src = e.target.result;
                 previewPlaceholder.style.display = 'block';
                 btnClearImg.style.display = 'none';
                 cropArea.style.cursor = 'pointer';
+                cropArea.style.backgroundColor = '#0066cc';
             });
         }
 
         // Dropzone / click actions directly on cropArea
         cropArea.addEventListener('click', () => {
-            if (!img.src) {
+            if (!hasImage) {
                 fileInput.click();
             }
         });
@@ -3052,19 +3371,19 @@ img.src = e.target.result;
         
         cropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            if (!img.src) {
-                cropArea.style.backgroundColor = 'rgba(0, 102, 204, 0.04)';
+            if (!hasImage) {
+                cropArea.style.backgroundColor = '#0077ed';
             }
         });
         
         cropArea.addEventListener('dragleave', () => {
-            cropArea.style.backgroundColor = '#f1f5f9';
+            cropArea.style.backgroundColor = '#0066cc';
         });
         
         cropArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            cropArea.style.backgroundColor = '#f1f5f9';
-            if (!img.src) {
+            cropArea.style.backgroundColor = '#0066cc';
+            if (!hasImage) {
                 handleFile(e.dataTransfer.files[0]);
             }
         });
@@ -3077,7 +3396,7 @@ img.src = e.target.result;
         let initialOffsetY = 0;
         
         function onMouseDown(e) {
-            if (!img.src) return;
+            if (!hasImage) return;
             isDragging = true;
             cropArea.style.cursor = 'grabbing';
             startDragX = e.clientX;
@@ -3104,7 +3423,7 @@ img.src = e.target.result;
 
         // Mouse Wheel Zoom
         function onWheel(e) {
-            if (!img.src) return;
+            if (!hasImage) return;
             e.preventDefault();
             
             const zoomSpeed = 0.05;
@@ -3123,7 +3442,7 @@ img.src = e.target.result;
         let initialScale = 1;
 
         function onTouchStart(e) {
-            if (!img.src) return;
+            if (!hasImage) return;
             
             if (e.touches.length === 1) {
                 touchMode = 'drag';
@@ -3147,7 +3466,7 @@ img.src = e.target.result;
         }
 
         function onTouchMove(e) {
-            if (!img.src) return;
+            if (!hasImage) return;
             
             if (touchMode === 'drag' && e.touches.length === 1) {
                 const dx = e.touches[0].clientX - startDragX;
@@ -3203,66 +3522,173 @@ img.src = e.target.result;
         window.addEventListener('touchend', onTouchEnd);
         window.addEventListener('touchcancel', onTouchEnd);
 
-        // Download canvas drawing logic
-        downloadBtn.addEventListener('click', () => {
-            if (!img.src) {
-                alert('กรุณาอัปโหลดรูปภาพก่อนทำการดาวน์โหลด');
+        // Save logic (modified: saves data to DB, no auto-download)
+        downloadBtn.addEventListener('click', async () => {
+            if (!hasImage) {
+                alert('กรุณาอัปโหลดรูปภาพก่อนทำการบันทึก');
                 return;
             }
+
+            if (!line1Input.value.trim() || !rahasInput.value.trim() || !line2Input.value.trim() || !line3Input.value.trim()) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่องก่อนทำการบันทึก (ชื่อ-นามสกุล, รหัสนักศึกษา, โรงเรียน, และบริษัท)');
+                return;
+            }
+
+            const origHtml = downloadBtn.innerHTML;
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
             
-            // Create canvas at high resolution (800x1200)
-            const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 1200;
-            const ctx = canvas.getContext('2d');
-            
-            // 1. Draw white background over the entire canvas (800x1200)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 800, 1200);
-            
-            // 2. Draw Student Image inside top box (0, 0, 800, 840) with clipping
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(0, 0, 800, 840);
-            ctx.clip();
-            
-            // Scale parameters from preview wrapper width (380px) to canvas inner width (800px)
-            const k = 800 / wrapperWidth;
-            const canvasBaseWidth = baseWidth * k;
-            const canvasBaseHeight = baseHeight * k;
-            
-            const drawWidth = canvasBaseWidth * scale;
-            const drawHeight = canvasBaseHeight * scale;
-            
-            // Centered draw X and Y positions
-            const drawX = (800 - drawWidth) / 2 + offsetX * k;
-            const drawY = (840 - drawHeight) / 2 + offsetY * k;
-            
-            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-            ctx.restore();
-            
-            // 3. Draw centered bold text in the white text box area (0, 840, 800, 360)
-            ctx.fillStyle = '#000000';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            // Fonts: use Kanit with fallbacks
-            ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
-            
-            const txtLine1 = line1Input.value || getLine1Default();
-            const txtLine2 = line2Input.value || getLine2Default();
-            const txtLine3 = line3Input.value || getLine3Default();
-            
-            // Line heights centered inside 360px area
-            ctx.fillText(txtLine1, 400, 940);
-            ctx.fillText(txtLine2, 400, 1020);
-            ctx.fillText(txtLine3, 400, 1100);
-            
-            // 6. Download file
-            const link = document.createElement('a');
-            link.download = `student_intro_${state.currentStudent ? state.currentStudent.id : 'card'}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            try {
+                let studentId = '';
+                let studentName = '';
+                let roomVal = '';
+                let yearVal = '';
+
+                const line1Val = line1Input.value.trim();
+                const rahasVal = rahasInput.value.trim();
+                const line2Val = line2Input.value.trim();
+                const line3Val = line3Input.value.trim();
+
+                if (state.currentStudent) {
+                    studentId = state.currentStudent.id;
+                    studentName = getCleanName(state.currentStudent.name);
+                    roomVal = state.currentStudent.room || '';
+                    yearVal = state.currentStudent.year || '';
+                } else {
+                    studentId = rahasVal.toUpperCase();
+                    studentName = line1Val;
+                    roomVal = line2Val;
+                    yearVal = line3Val;
+                }
+
+                let dbStudentId = 'STD001';
+                try {
+                    const studentsList = await window.tuitionStore.getStudents();
+                    if (studentsList && studentsList.length > 0) {
+                        dbStudentId = studentsList[0].id;
+                    }
+                } catch (e) {
+                    console.warn("Could not fetch students list for fallback ID:", e);
+                }
+
+                if (state.currentStudent) {
+                    dbStudentId = state.currentStudent.id;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 1200;
+                const ctx = canvas.getContext('2d');
+                
+                // 1. Draw white background over the entire canvas (800x1200)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 800, 1200);
+                
+                // 2. Draw Student Image inside top box (0, 0, 800, 840) with clipping
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 0, 800, 840);
+                ctx.clip();
+                
+                // Scale parameters from preview wrapper width (380px) to canvas inner width (800px)
+                const k = 800 / wrapperWidth;
+                const canvasBaseWidth = baseWidth * k;
+                const canvasBaseHeight = baseHeight * k;
+                
+                const drawWidth = canvasBaseWidth * scale;
+                const drawHeight = canvasBaseHeight * scale;
+                
+                // Centered draw X and Y positions
+                const drawX = (800 - drawWidth) / 2 + offsetX * k;
+                const drawY = (840 - drawHeight) / 2 + offsetY * k;
+                
+                ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                ctx.restore();
+                
+                // 3. Draw centered bold text in the white text box area (0, 840, 800, 360)
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Fonts: use Kanit with fallbacks
+                ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
+                
+                const txtLine1 = `${line1Val} รหัส ${rahasVal}`;
+                const txtLine2 = line2Val;
+                const txtLine3 = line3Val;
+                
+                // Line heights centered inside 360px area
+                ctx.fillText(txtLine1, 400, 940);
+                ctx.fillText(txtLine2, 400, 1020);
+                ctx.fillText(txtLine3, 400, 1100);
+                
+                const cardBase64 = canvas.toDataURL('image/png');
+                
+                // 4. Save to database
+                const cardInfo = {
+                    id: studentId,
+                    name: studentName,
+                    room: roomVal,
+                    year: yearVal
+                };
+                const commentText = `CARD_INFO:${JSON.stringify(cardInfo)}`;
+                await window.tuitionStore.saveIntroCard(dbStudentId, studentId, cardBase64, commentText);
+                
+                // 5. Show Success Checkmark Modal
+                const successModal = document.getElementById('modal-success-checkmark');
+                const lottiePlayer = document.getElementById('lottie-success-player');
+                if (successModal) {
+                    if (lottiePlayer) {
+                        if (typeof lottiePlayer.load === 'function' && typeof LOTTIE_SUCCESS_JSON !== 'undefined') {
+                            try {
+                                lottiePlayer.load(LOTTIE_SUCCESS_JSON);
+                            } catch (e) {
+                                console.error("Error loading Lottie JSON on display:", e);
+                            }
+                        }
+                        if (typeof lottiePlayer.seek === 'function') {
+                            lottiePlayer.seek(0);
+                        }
+                        if (typeof lottiePlayer.play === 'function') {
+                            lottiePlayer.play();
+                        }
+                    }
+                    successModal.style.display = 'flex';
+                    setTimeout(() => {
+                        successModal.classList.add('active');
+                    }, 10);
+                    
+                    let dismissed = false;
+                    const dismissModal = () => {
+                        if (dismissed) return;
+                        dismissed = true;
+                        successModal.classList.remove('active');
+                        setTimeout(() => {
+                            successModal.style.display = 'none';
+                            if (lottiePlayer && typeof lottiePlayer.stop === 'function') {
+                                lottiePlayer.stop();
+                            }
+                        }, 300);
+                    };
+
+                    const autoDismissTimeout = setTimeout(dismissModal, 2200);
+
+                    successModal.onclick = () => {
+                        clearTimeout(autoDismissTimeout);
+                        dismissModal();
+                    };
+                }
+
+                // 6. Sync and notify database update
+                await notifyDbUpdate('payments', dbStudentId);
+
+            } catch (err) {
+                console.error("Save card error:", err);
+                alert(`❌ เกิดข้อผิดพลาดในการบันทึกรูปภาพ: ${err.message || JSON.stringify(err)}`);
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = origHtml;
+            }
         });
         
         // Expose function to trigger default values
