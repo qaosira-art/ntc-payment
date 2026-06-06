@@ -5,6 +5,18 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Convert Lottie JSON data to a data URL to bypass local file CORS constraints
+    function getLottieDogSrc() {
+        if (typeof LOTTIE_DOG_JSON !== 'undefined') {
+            try {
+                return 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(LOTTIE_DOG_JSON));
+            } catch (e) {
+                console.error("Error stringifying LOTTIE_DOG_JSON:", e);
+            }
+        }
+        return 'assets/dog.json'; // Fallback
+    }
+
     // Helper functions for parsing funding information from name if column missing
     function getCleanName(fullName) {
         if (!fullName) return '';
@@ -356,17 +368,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateAdminDashboard();
                     return;
                 }
+            } else if (targetView === 'view-image-tool') {
+                const tabImage = document.getElementById('tab-image-tool');
+                if (tabImage) tabImage.classList.add('active');
             }
             switchView(targetView);
         }
 
         const mobTabStudent = document.getElementById('mob-tab-student');
         const mobTabAdmin = document.getElementById('mob-tab-admin');
+        const mobTabImageTool = document.getElementById('mob-tab-image-tool');
         if (mobTabStudent) {
             mobTabStudent.addEventListener('click', () => handleMobileNav('view-student-auth', 'mob-tab-student'));
         }
         if (mobTabAdmin) {
             mobTabAdmin.addEventListener('click', () => handleMobileNav('view-admin-auth', 'mob-tab-admin'));
+        }
+        if (mobTabImageTool) {
+            mobTabImageTool.addEventListener('click', () => handleMobileNav('view-image-tool', 'mob-tab-image-tool'));
         }
 
         // Logo click goes home / student auth or logs out student if logged in (acting as back button)
@@ -412,6 +431,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 logoutBtn.style.display = 'none';
             }
+        }
+
+        if (viewId === 'view-image-tool' && typeof window.populateImageToolDefaults === 'function') {
+            window.populateImageToolDefaults();
         }
     }
 
@@ -1047,6 +1070,15 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarImg.src = student.avatar || 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0';
         }
         
+        // Update Theme
+        const themeBanner = document.getElementById('student-hero-banner');
+        if (themeBanner) {
+            const savedTheme = localStorage.getItem('student_theme_' + student.id) || student.theme || 'theme-default';
+            student.theme = savedTheme;
+            themeBanner.className = 'student-hero-banner ' + savedTheme;
+        }
+        
+        
         // Show Portal View IMMEDIATELY so it feels snappy
         switchView('view-student-portal');
         
@@ -1631,8 +1663,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // 6. Sync and refresh view across tabs and current tab
                 await notifyDbUpdate('payments', state.currentStudent.id);
-                
-                alert("🎉 ส่งหลักฐานการชำระเงินเรียบร้อยแล้ว! กรุณารอเจ้าหน้าที่ตรวจสอบสลิป");
             } catch (err) {
                 console.error("Payment submission error:", err);
                 alert(`❌ เกิดข้อผิดพลาดในการส่งสลิป: ${err.message || err.description || JSON.stringify(err)}`);
@@ -1861,7 +1891,7 @@ img.src = e.target.result;
             e.preventDefault();
             const password = passwordInput.value.trim();
 
-            if (password === '1234') { // Exact Admin password
+            if (password === 'pp1234') { // Exact Admin password
                 loginError.style.display = 'none';
                 passwordInput.value = '';
                 sessionStorage.setItem('adminLoggedIn', 'true');
@@ -2114,8 +2144,10 @@ img.src = e.target.result;
 
         const payments = await window.tuitionStore.getPayments(true);
         
-        // Show all items without filtering
-        const filtered = payments.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+        // Show ONLY pending items and sort earliest first (FIFO)
+        const filtered = payments
+            .filter(p => p.status === 'pending')
+            .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
 
         if (filtered.length === 0) {
             tbody.innerHTML = '';
@@ -2363,25 +2395,88 @@ img.src = e.target.result;
             state.inspectorPaymentId = null;
         });
 
-        // 1. ZOOM IN CONTROLS
-        document.getElementById('btn-zoom-in').addEventListener('click', () => {
-            state.zoomLevel += 0.2;
-            if (state.zoomLevel > 3.0) state.zoomLevel = 3.0; // limit zoom
-            applyViewerTransforms();
-        });
+        // 1. PINCH-TO-ZOOM & PAN CONTROLS
+        const viewport = document.getElementById('slip-viewer-viewport');
+        let initialDistance = 0;
+        let initialZoom = 1.0;
+        let startX = 0;
+        let startY = 0;
+        let initialPanX = 0;
+        let initialPanY = 0;
 
-        // 2. ZOOM OUT CONTROLS
-        document.getElementById('btn-zoom-out').addEventListener('click', () => {
-            state.zoomLevel -= 0.2;
-            if (state.zoomLevel < 0.5) state.zoomLevel = 0.5; // limit scale
-            applyViewerTransforms();
-        });
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].pageX - e.touches[1].pageX;
+                const dy = e.touches[0].pageY - e.touches[1].pageY;
+                initialDistance = Math.sqrt(dx*dx + dy*dy);
+                initialZoom = state.zoomLevel;
+            } else if (e.touches.length === 1 && state.zoomLevel > 1.0) {
+                e.preventDefault();
+                startX = e.touches[0].pageX;
+                startY = e.touches[0].pageY;
+                initialPanX = state.panX || 0;
+                initialPanY = state.panY || 0;
+            }
+        }, { passive: false });
 
-        // 3. ROTATION CONTROLS
-        document.getElementById('btn-rotate').addEventListener('click', () => {
-            state.rotationAngle += 90;
-            if (state.rotationAngle >= 360) state.rotationAngle = 0;
+        viewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].pageX - e.touches[1].pageX;
+                const dy = e.touches[0].pageY - e.touches[1].pageY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                state.zoomLevel = initialZoom * (dist / initialDistance);
+                if (state.zoomLevel < 0.5) state.zoomLevel = 0.5;
+                if (state.zoomLevel > 5.0) state.zoomLevel = 5.0;
+                applyViewerTransforms();
+            } else if (e.touches.length === 1 && state.zoomLevel > 1.0) {
+                e.preventDefault();
+                const dx = e.touches[0].pageX - startX;
+                const dy = e.touches[0].pageY - startY;
+                state.panX = initialPanX + dx;
+                state.panY = initialPanY + dy;
+                applyViewerTransforms();
+            }
+        }, { passive: false });
+        
+        // Mouse wheel zooming
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                state.zoomLevel += 0.1;
+            } else {
+                state.zoomLevel -= 0.1;
+            }
+            if (state.zoomLevel < 0.5) state.zoomLevel = 0.5;
+            if (state.zoomLevel > 5.0) state.zoomLevel = 5.0;
             applyViewerTransforms();
+        }, { passive: false });
+
+        // Mouse dragging for pan
+        let isDragging = false;
+        viewport.addEventListener('mousedown', (e) => {
+            if (state.zoomLevel > 1.0) {
+                isDragging = true;
+                startX = e.pageX;
+                startY = e.pageY;
+                initialPanX = state.panX || 0;
+                initialPanY = state.panY || 0;
+                viewport.style.cursor = 'grabbing';
+            }
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging && state.zoomLevel > 1.0) {
+                const dx = e.pageX - startX;
+                const dy = e.pageY - startY;
+                state.panX = initialPanX + dx;
+                state.panY = initialPanY + dy;
+                applyViewerTransforms();
+            }
+        });
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            viewport.style.cursor = '';
         });
 
         // 4. RESET CONTROLS
@@ -2568,7 +2663,11 @@ img.src = e.target.result;
 
     function applyViewerTransforms() {
         const img = document.getElementById('inspector-slip-img');
-        img.style.transform = `scale(${state.zoomLevel}) rotate(${state.rotationAngle}deg)`;
+        if (state.zoomLevel <= 1.0) {
+            state.panX = 0;
+            state.panY = 0;
+        }
+        img.style.transform = `translate(${state.panX || 0}px, ${state.panY || 0}px) scale(${state.zoomLevel}) rotate(${state.rotationAngle}deg)`;
     }
 
 
@@ -2745,5 +2844,429 @@ img.src = e.target.result;
         hideInstallButton();
         if (iosToast) iosToast.style.display = 'none';
     });
+    
+    // Theme Picker Setup
+    const btnThemePicker = document.getElementById('btn-theme-picker');
+    const themeMenu = document.getElementById('theme-picker-menu');
+    const themeBanner = document.getElementById('student-hero-banner');
+    const btnSaveTheme = document.getElementById('btn-save-theme');
+    let selectedPreviewTheme = null;
+    
+    if (btnThemePicker && themeMenu && themeBanner) {
+        btnThemePicker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeMenu.classList.toggle('active');
+            if (btnSaveTheme) btnSaveTheme.style.display = 'none';
+            selectedPreviewTheme = state.currentStudent ? (state.currentStudent.theme || 'theme-default') : 'theme-default';
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!themeMenu.contains(e.target) && !btnThemePicker.contains(e.target)) {
+                themeMenu.classList.remove('active');
+                if (btnSaveTheme) btnSaveTheme.style.display = 'none';
+                // Revert preview if not saved
+                if (state.currentStudent) {
+                    themeBanner.className = 'student-hero-banner ' + (state.currentStudent.theme || 'theme-default');
+                }
+            }
+        });
+        
+        themeMenu.querySelectorAll('.theme-swatch').forEach(swatch => {
+            swatch.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedPreviewTheme = swatch.dataset.theme;
+                themeBanner.className = 'student-hero-banner ' + selectedPreviewTheme;
+                if (btnSaveTheme) btnSaveTheme.style.display = 'block';
+            });
+        });
+
+        if (btnSaveTheme) {
+            btnSaveTheme.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedPreviewTheme && state.currentStudent) {
+                    state.currentStudent.theme = selectedPreviewTheme;
+                    
+                    // Save to local storage
+                    localStorage.setItem('student_theme_' + state.currentStudent.id, selectedPreviewTheme);
+                    
+                    // Visual feedback
+                    const oldText = btnSaveTheme.textContent;
+                    btnSaveTheme.textContent = 'สำเร็จ!';
+                    btnSaveTheme.style.background = 'var(--success)';
+                    
+                    setTimeout(() => {
+                        themeMenu.classList.remove('active');
+                        btnSaveTheme.style.display = 'none';
+                        btnSaveTheme.textContent = oldText;
+                        btnSaveTheme.style.background = 'var(--primary)';
+                    }, 800);
+                }
+            });
+        }
+    }
+
+    // Initialize Image Tool logic
+    initImageTool();
+
+    // =========================================================================
+    // IMAGE TOOL LOGIC
+    // =========================================================================
+    function initImageTool() {
+        const fileInput = document.getElementById('img-tool-file-input');
+        const downloadBtn = document.getElementById('btn-download-img-tool');
+        
+        const previewImg = document.getElementById('img-tool-preview-img');
+        const previewPlaceholder = document.getElementById('preview-img-placeholder');
+        const cropArea = document.getElementById('img-tool-crop-area');
+        const btnClearImg = document.getElementById('btn-clear-img');
+        
+        const line1Input = document.getElementById('img-tool-line1');
+        const line2Input = document.getElementById('img-tool-line2');
+        const line3Input = document.getElementById('img-tool-line3');
+        
+        const lblLine1 = document.getElementById('preview-lbl-line1');
+        const lblLine2 = document.getElementById('preview-lbl-line2');
+        const lblLine3 = document.getElementById('preview-lbl-line3');
+        
+        let img = new Image();
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let baseWidth = 0;
+        let baseHeight = 0;
+        
+        const wrapperWidth = 380; // 380px outer (no borders)
+        const wrapperHeight = 400; // HTML crop wrapper is 400px high
+
+        function getLine1Default() {
+            return state.currentStudent ? `${state.currentStudent.name} รหัส ${state.currentStudent.id}` : 'นายศิระ ยอแสง รหัส 250001';
+        }
+        function getLine2Default() {
+            return 'โรงเรียนเดิม';
+        }
+        function getLine3Default() {
+            return 'บริษัท';
+        }
+
+        // Sync inputs with preview labels
+        function updateLabels() {
+            lblLine1.textContent = line1Input.value || getLine1Default();
+            lblLine2.textContent = line2Input.value || getLine2Default();
+            lblLine3.textContent = line3Input.value || getLine3Default();
+        }
+        
+        [line1Input, line2Input, line3Input].forEach(inp => {
+            inp.addEventListener('input', updateLabels);
+        });
+
+        // Initialize values when student logs in
+        function populateDefaults() {
+            line1Input.value = '';
+            line2Input.value = '';
+            line3Input.value = '';
+            
+            line1Input.placeholder = getLine1Default();
+            line2Input.placeholder = getLine2Default();
+            line3Input.placeholder = getLine3Default();
+            
+            updateLabels();
+        }
+
+        // Handle file select
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        img.onload = () => {
+            previewImg.src = img.src;
+            previewImg.style.display = 'block';
+            previewPlaceholder.style.display = 'none';
+            if (btnClearImg) btnClearImg.style.display = 'flex';
+            cropArea.style.cursor = 'grab';
+            
+            // Calculate cover size
+            const imgAspect = img.naturalWidth / img.naturalHeight;
+            const wrapperAspect = wrapperWidth / wrapperHeight;
+            
+            if (imgAspect > wrapperAspect) {
+                baseHeight = wrapperHeight;
+                baseWidth = wrapperHeight * imgAspect;
+            } else {
+                baseWidth = wrapperWidth;
+                baseHeight = wrapperWidth / imgAspect;
+            }
+            
+            // Reset position
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            
+            updateImageTransform();
+        };
+
+        function updateImageTransform() {
+            previewImg.style.width = `${baseWidth}px`;
+            previewImg.style.height = `${baseHeight}px`;
+            previewImg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+        
+        // Clear/reset image tool
+        if (btnClearImg) {
+            btnClearImg.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent opening file chooser
+                
+                // Reset state variables
+                img = new Image();
+                scale = 1;
+                offsetX = 0;
+                offsetY = 0;
+                baseWidth = 0;
+                baseHeight = 0;
+                
+                // Clear file input
+                fileInput.value = '';
+                
+                // Reset main preview card UI
+                previewImg.src = '';
+                previewImg.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+                btnClearImg.style.display = 'none';
+                cropArea.style.cursor = 'pointer';
+            });
+        }
+
+        // Dropzone / click actions directly on cropArea
+        cropArea.addEventListener('click', () => {
+            if (!img.src) {
+                fileInput.click();
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+        
+        cropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!img.src) {
+                cropArea.style.backgroundColor = 'rgba(0, 102, 204, 0.04)';
+            }
+        });
+        
+        cropArea.addEventListener('dragleave', () => {
+            cropArea.style.backgroundColor = '#f1f5f9';
+        });
+        
+        cropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            cropArea.style.backgroundColor = '#f1f5f9';
+            if (!img.src) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Mouse Drag / Panning
+        let isDragging = false;
+        let startDragX = 0;
+        let startDragY = 0;
+        let initialOffsetX = 0;
+        let initialOffsetY = 0;
+        
+        function onMouseDown(e) {
+            if (!img.src) return;
+            isDragging = true;
+            cropArea.style.cursor = 'grabbing';
+            startDragX = e.clientX;
+            startDragY = e.clientY;
+            initialOffsetX = offsetX;
+            initialOffsetY = offsetY;
+        }
+        
+        function onMouseMove(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startDragX;
+            const dy = e.clientY - startDragY;
+            offsetX = initialOffsetX + dx;
+            offsetY = initialOffsetY + dy;
+            updateImageTransform();
+        }
+        
+        function onMouseUp() {
+            if (isDragging) {
+                isDragging = false;
+                cropArea.style.cursor = 'grab';
+            }
+        }
+
+        // Mouse Wheel Zoom
+        function onWheel(e) {
+            if (!img.src) return;
+            e.preventDefault();
+            
+            const zoomSpeed = 0.05;
+            const delta = -e.deltaY;
+            const factor = delta > 0 ? (1 + zoomSpeed) : (1 - zoomSpeed);
+            
+            const newScale = scale * factor;
+            scale = Math.max(0.2, Math.min(10, newScale));
+            
+            updateImageTransform();
+        }
+
+        // Multi-touch Gestures (Drag and Pinch to Zoom)
+        let touchMode = 'none'; // 'none', 'drag', 'pinch'
+        let initialDistance = 0;
+        let initialScale = 1;
+
+        function onTouchStart(e) {
+            if (!img.src) return;
+            
+            if (e.touches.length === 1) {
+                touchMode = 'drag';
+                startDragX = e.touches[0].clientX;
+                startDragY = e.touches[0].clientY;
+                initialOffsetX = offsetX;
+                initialOffsetY = offsetY;
+            } else if (e.touches.length === 2) {
+                touchMode = 'pinch';
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = scale;
+                startDragX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                startDragY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                initialOffsetX = offsetX;
+                initialOffsetY = offsetY;
+            }
+            e.preventDefault();
+        }
+
+        function onTouchMove(e) {
+            if (!img.src) return;
+            
+            if (touchMode === 'drag' && e.touches.length === 1) {
+                const dx = e.touches[0].clientX - startDragX;
+                const dy = e.touches[0].clientY - startDragY;
+                offsetX = initialOffsetX + dx;
+                offsetY = initialOffsetY + dy;
+                updateImageTransform();
+                e.preventDefault();
+            } else if (touchMode === 'pinch' && e.touches.length === 2) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                
+                if (initialDistance > 0) {
+                    const newScale = initialScale * (currentDistance / initialDistance);
+                    scale = Math.max(0.2, Math.min(10, newScale));
+                }
+                
+                const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const dx = midX - startDragX;
+                const dy = midY - startDragY;
+                offsetX = initialOffsetX + dx;
+                offsetY = initialOffsetY + dy;
+                
+                updateImageTransform();
+                e.preventDefault();
+            }
+        }
+
+        function onTouchEnd(e) {
+            if (e.touches.length === 0) {
+                touchMode = 'none';
+            } else if (e.touches.length === 1) {
+                touchMode = 'drag';
+                startDragX = e.touches[0].clientX;
+                startDragY = e.touches[0].clientY;
+                initialOffsetX = offsetX;
+                initialOffsetY = offsetY;
+            }
+        }
+
+        // Attach Event Listeners
+        cropArea.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        
+        cropArea.addEventListener('wheel', onWheel, { passive: false });
+        
+        cropArea.addEventListener('touchstart', onTouchStart, { passive: false });
+        window.addEventListener('touchmove', onTouchMove, { passive: false });
+        window.addEventListener('touchend', onTouchEnd);
+        window.addEventListener('touchcancel', onTouchEnd);
+
+        // Download canvas drawing logic
+        downloadBtn.addEventListener('click', () => {
+            if (!img.src) {
+                alert('กรุณาอัปโหลดรูปภาพก่อนทำการดาวน์โหลด');
+                return;
+            }
+            
+            // Create canvas at high resolution (800x1200)
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 1200;
+            const ctx = canvas.getContext('2d');
+            
+            // 1. Draw white background over the entire canvas (800x1200)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 800, 1200);
+            
+            // 2. Draw Student Image inside top box (0, 0, 800, 840) with clipping
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, 800, 840);
+            ctx.clip();
+            
+            // Scale parameters from preview wrapper width (380px) to canvas inner width (800px)
+            const k = 800 / wrapperWidth;
+            const canvasBaseWidth = baseWidth * k;
+            const canvasBaseHeight = baseHeight * k;
+            
+            const drawWidth = canvasBaseWidth * scale;
+            const drawHeight = canvasBaseHeight * scale;
+            
+            // Centered draw X and Y positions
+            const drawX = (800 - drawWidth) / 2 + offsetX * k;
+            const drawY = (840 - drawHeight) / 2 + offsetY * k;
+            
+            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+            ctx.restore();
+            
+            // 3. Draw centered bold text in the white text box area (0, 840, 800, 360)
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Fonts: use Kanit with fallbacks
+            ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
+            
+            const txtLine1 = line1Input.value || getLine1Default();
+            const txtLine2 = line2Input.value || getLine2Default();
+            const txtLine3 = line3Input.value || getLine3Default();
+            
+            // Line heights centered inside 360px area
+            ctx.fillText(txtLine1, 400, 940);
+            ctx.fillText(txtLine2, 400, 1020);
+            ctx.fillText(txtLine3, 400, 1100);
+            
+            // 6. Download file
+            const link = document.createElement('a');
+            link.download = `student_intro_${state.currentStudent ? state.currentStudent.id : 'card'}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+        
+        // Expose function to trigger default values
+        window.populateImageToolDefaults = populateDefaults;
+    }
 
 });

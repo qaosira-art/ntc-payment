@@ -21,7 +21,7 @@ try {
         
         # Clean path for Windows filesystem
         $cleanPath = $cleanUrl.Replace("/", "\")
-        $filePath = Join-Path "c:\Users\UserNonthaburi01\.gemini\antigravity\scratch\tuition_payment" $cleanPath
+        $filePath = Join-Path $PSScriptRoot $cleanPath
         
         if (Test-Path $filePath -PathType Leaf) {
             $content = [System.IO.File]::ReadAllBytes($filePath)

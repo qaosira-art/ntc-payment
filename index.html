@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Slip GYS">
     <link rel="apple-touch-icon" href="assets/logo.png">
-    <link rel="stylesheet" href="css/style.css?v=22">
+    <link rel="stylesheet" href="css/style.css?v=47">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lottie Player Script -->
@@ -36,6 +36,7 @@
             
             <nav class="nav-links">
                 <a href="#" class="nav-tab active" id="tab-student-portal" data-target="view-student-auth"><i class="fa-solid fa-user-graduate"></i> นักศึกษา</a>
+                <a href="#" class="nav-tab" id="tab-image-tool" data-target="view-image-tool"><i class="fa-solid fa-image"></i> รูปภาพ</a>
                 <a href="#" class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth"><i class="fa-solid fa-user-tie"></i> ที่ปรึกษา</a>
             </nav>
 
@@ -68,6 +69,14 @@
                 <div class="mobile-nav-details">
                     <span class="mobile-nav-title">ที่ปรึกษา</span>
                     <span class="mobile-nav-subtitle">ตรวจสอบหลักฐาน / จัดการข้อมูล</span>
+                </div>
+            </button>
+            <div class="mobile-nav-divider"></div>
+            <button class="mobile-nav-item" id="mob-tab-image-tool">
+                <div class="mobile-nav-icon" style="color: #ea580c; background: rgba(234, 88, 12, 0.1);"><i class="fa-solid fa-image"></i></div>
+                <div class="mobile-nav-details">
+                    <span class="mobile-nav-title">รูปภาพ</span>
+                    <span class="mobile-nav-subtitle">จัดทำบัตรแนะนำตัวนักศึกษา</span>
                 </div>
             </button>
             <div id="install-pwa-divider" class="mobile-nav-divider" style="display: none;"></div>
@@ -116,7 +125,21 @@
                 <!-- All content centered -->
                 <div>
                     <!-- Student Hero Info Header (inside left column) -->
-                    <div class="student-hero-banner">
+                    <div class="student-hero-banner theme-default" id="student-hero-banner">
+                        <button class="btn-theme-picker" id="btn-theme-picker" title="เปลี่ยนสีพื้นหลัง">
+                            <i class="fa-solid fa-palette"></i>
+                        </button>
+                        <div class="theme-picker-menu" id="theme-picker-menu" style="flex-direction: column; gap: 8px;">
+                            <div style="font-size: 10px; font-weight: bold; color: #666; margin-bottom: -4px;">สีพื้นหลัง</div>
+                            <div class="picker-row" style="display: flex; gap: 8px;">
+                                <div class="theme-swatch" data-theme="theme-default" style="background: linear-gradient(135deg, #0a2540 0%, #004499 50%, #0066cc 100%);"></div>
+                                <div class="theme-swatch" data-theme="theme-pastel-pink" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);"></div>
+                                <div class="theme-swatch" data-theme="theme-pastel-blue" style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);"></div>
+                                <div class="theme-swatch" data-theme="theme-pastel-purple" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);"></div>
+                                <div class="theme-swatch" data-theme="theme-pastel-orange" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);"></div>
+                            </div>
+                            <button id="btn-save-theme" style="width: 100%; margin-top: 4px; padding: 6px 12px; border-radius: 12px; background: var(--primary); color: white; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: none;">บันทึกการเปลี่ยนแปลง</button>
+                        </div>
                         <div class="student-hero-profile">
                             <div class="student-hero-avatar">
                                 <label for="avatar-upload" style="cursor: pointer; width: 100%; height: 100%; position: relative; display: block;">
@@ -267,24 +290,147 @@
 
 
         <!-- ============================================ -->
+        <!-- VIEW: IMAGE AND TEXT ARRANGEMENT TOOL        -->
+        <!-- ============================================ -->
+        <section id="view-image-tool" class="view-section hidden">
+            <div style="max-width: 900px; margin: 0 auto; padding: 20px 10px;">
+                <div class="text-center" style="margin-bottom: 32px;">
+                    <h2 style="font-size: 32px; font-weight: 700; color: #1d1d1f; margin-bottom: 8px;">จัดทำบัตรแนะนำตัว</h2>
+                    <p style="font-size: 16px; color: #86868b;">อัปโหลดรูปภาพและป้อนข้อความ จากนั้นปรับตำแหน่งตามสะดวกเพื่อดาวน์โหลดลงเครื่องได้ทันที</p>
+                </div>
+                
+                <div class="image-tool-container" style="display: flex; justify-content: center; width: 100%;">
+                    
+                    <!-- Centered Column: Controls & Preview -->
+                    <div class="card-panel card-panel-glass" style="padding: 28px; display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 440px; box-sizing: border-box; margin: 0 auto;">
+                        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: -4px;"><i class="fa-solid fa-sliders" style="color: var(--primary); margin-right: 8px;"></i>แผงควบคุม</h3>
+                        
+                        <!-- File Upload with Embedded Preview -->
+                        <div class="form-field" style="display: flex; flex-direction: column; align-items: center;">
+                            <label style="font-weight: 700; margin-bottom: 8px; align-self: flex-start;">1. อัปโหลดรูปภาพ</label>
+                            
+                            <!-- Visual Container mimicking the layout with subtle border -->
+                            <div id="img-tool-preview-container" style="
+                                width: 380px;
+                                height: 570px;
+                                background: white;
+                                border: 1px solid #e2e8f0;
+                                box-sizing: border-box;
+                                box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+                                border-radius: 4px;
+                                display: flex;
+                                flex-direction: column;
+                                overflow: hidden;
+                                position: relative;
+                                user-select: none;
+                            ">
+                                <!-- Image Cropper/Pan Area -->
+                                <div id="img-tool-crop-area" style="
+                                    width: 100%;
+                                    height: 400px;
+                                    overflow: hidden;
+                                    position: relative;
+                                    background: #f1f5f9;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    cursor: pointer;
+                                    border-bottom: 1px solid #e2e8f0;
+                                ">
+                                    <!-- Placeholder when no image is uploaded -->
+                                    <div id="preview-img-placeholder" style="color: #94a3b8; text-align: center; padding: 20px; user-select: none;">
+                                        <i class="fa-regular fa-image" style="font-size: 48px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                                        <div style="font-size: 13px; font-weight: 600;">อัปโหลดรูปภาพเพื่อดูตัวอย่าง</div>
+                                    </div>
+                                    <img id="img-tool-preview-img" style="display: none; position: absolute; user-select: none; -webkit-user-drag: none; transform-origin: center;">
+                                    
+                                    <!-- Clear/Cancel button (Visible when image is uploaded) -->
+                                    <button id="btn-clear-img" type="button" style="display: none; position: absolute; top: 12px; right: 12px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 14px; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.25);" onmouseover="this.style.transform='scale(1.1)'; this.style.backgroundColor='#ef4444';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(239, 68, 68, 0.9)';">
+                                        <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                                    </button>
+                                </div>
+
+                                <!-- White text box at bottom -->
+                                <div id="img-tool-text-area" style="
+                                    flex: 1;
+                                    background: white;
+                                    padding: 12px 16px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    align-items: center;
+                                    gap: 6px;
+                                    text-align: center;
+                                    box-sizing: border-box;
+                                ">
+                                    <div id="preview-lbl-line1" style="font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: bold; color: #000; line-height: 1.35; white-space: normal; word-break: break-word;"></div>
+                                    <div id="preview-lbl-line2" style="font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: bold; color: #000; line-height: 1.35; white-space: normal; word-break: break-word;"></div>
+                                    <div id="preview-lbl-line3" style="font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: bold; color: #000; line-height: 1.35; white-space: normal; word-break: break-word;"></div>
+                                </div>
+                            </div>
+                            
+                            <input type="file" id="img-tool-file-input" accept="image/*" style="display: none;">
+                        </div>
+
+                        <!-- Text Inputs -->
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <label style="font-weight: 700; margin-bottom: -4px;">2. ป้อนข้อความใต้รูปภาพ</label>
+                            
+                            <div class="form-field">
+                                <label for="img-tool-line1" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">บรรทัดที่ 1 (ชื่อ นามสกุล รหัส)</label>
+                                <input type="text" id="img-tool-line1" placeholder="นายศิระ ยอแสง รหัส 250001" style="width: 100%; box-sizing: border-box;">
+                            </div>
+                            
+                            <div class="form-field">
+                                <label for="img-tool-line2" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">บรรทัดที่ 2 (ชื่อโรงเรียน)</label>
+                                <input type="text" id="img-tool-line2" placeholder="โรงเรียนเดิม" style="width: 100%; box-sizing: border-box;">
+                            </div>
+                            
+                            <div class="form-field">
+                                <label for="img-tool-line3" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">บรรทัดที่ 3 (บริษัท)</label>
+                                <input type="text" id="img-tool-line3" placeholder="บริษัท" style="width: 100%; box-sizing: border-box;">
+                            </div>
+                        </div>
+
+                        <!-- Info Helper -->
+                        <div style="font-size: 12px; color: #64748b; text-align: center; margin-top: 4px; line-height: 1.4;">
+                            <i class="fa-solid fa-circle-info" style="color: var(--primary); margin-right: 4px;"></i> ใช้เมาส์/นิ้วแตะเลื่อน และ<b>กางนิ้ว (Pinch to Zoom)/เลื่อนลูกกลิ้งเมาส์ เพื่อย่อขยาย/จัดตำแหน่งรูปภาพ</b>อย่างอิสระบนพื้นที่พรีวิวได้ทันที
+                        </div>
+
+                        <!-- Action Button -->
+                        <button class="btn-modern btn-modern-primary" type="button" id="btn-download-img-tool" style="width: 100%; height: 50px; font-size: 16px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            ดาวน์โหลดรูปภาพ <i class="fa-solid fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================ -->
         <!-- VIEW 3: ADMIN LOGIN                          -->
         <!-- ============================================ -->
         <section id="view-admin-auth" class="view-section hidden">
             <div class="card-panel card-panel-glass text-center" style="max-width: 440px; margin: 60px auto 0;">
-                <div style="width: 56px; height: 56px; background: rgba(0, 102, 204, 0.08); border-radius: 50%; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 20px;">
-                    <i class="fa-solid fa-shield-halved"></i>
+                <div style="color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
                 </div>
-                <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f;">เข้าสู่ระบบ Admin</h2>
-                <p style="font-size: 14px; color: #86868b; margin-bottom: 28px;">กรุณากรอกข้อมูลเพื่อเข้าใช้งาน</p>
+                <h2 style="font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f;">เข้าสู่ระบบที่ปรึกษา</h2>
+                <p style="font-size: 15px; color: #86868b; margin-bottom: 32px;">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
                 
                 <form id="form-admin-login">
                     <div class="form-field" style="margin-bottom: 24px;">
                         <label for="input-admin-password" style="text-align: left; font-weight: 700; color: #1d1d1f; margin-bottom: 8px;">รหัสผ่าน</label>
-                        <input type="password" id="input-admin-password" placeholder="กรุณากรอกรหัสผ่าน" style="text-align: left;">
+                        <input type="password" id="input-admin-password" placeholder="กรุณากรอกรหัสผ่าน" style="text-align: left; width: 100%; box-sizing: border-box;">
                     </div>
                     <p id="admin-login-error" style="color: var(--danger); font-size: 13px; font-weight: 600; margin-bottom: 16px; display: none;">รหัสผ่านไม่ถูกต้อง</p>
                     
-                    <button type="submit" class="btn-modern btn-modern-primary w-100" style="height: 48px; border-radius: 8px;">
+                    <button type="submit" class="btn-modern btn-modern-primary" style="height: 48px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: 600;">
                         เข้าสู่ระบบ
                     </button>
                 </form>
@@ -407,9 +553,6 @@
                 
                 <!-- Zoom / Rotate Overlay Tool controls -->
                 <div class="viewer-controls">
-                    <button class="viewer-btn" id="btn-zoom-in" title="ซูมเข้า"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
-                    <button class="viewer-btn" id="btn-zoom-out" title="ซูมออก"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-                    <button class="viewer-btn" id="btn-rotate" title="หมุนภาพ"><i class="fa-solid fa-rotate"></i></button>
                     <button class="viewer-btn" id="btn-viewer-reset" title="คืนค่าเดิม"><i class="fa-solid fa-expand"></i></button>
                     <button class="viewer-btn" id="btn-viewer-download" title="ดาวน์โหลดไฟล์สลิปเป็น PNG"><i class="fa-solid fa-download"></i></button>
                     <button class="viewer-btn" id="btn-viewer-share" title="แชร์สลิปผ่าน LINE"><i class="fa-brands fa-line" style="color: #00c300;"></i></button>
@@ -871,7 +1014,8 @@
     <!-- System Libraries -->
     <script src="js/store.js"></script>
     <script src="js/lottie-data.js"></script>
-    <script src="js/app.js?v=22"></script>
+    <script src="js/dog-lottie.js"></script>
+    <script src="js/app.js?v=47"></script>
     <script>
         // Disable pinch-zoom gestures
         document.addEventListener('gesturestart', function(e) {
