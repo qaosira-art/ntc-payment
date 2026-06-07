@@ -181,16 +181,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     // First line: Class/ID/Room
                     ctx.fillStyle = '#86868b'; // Apple gray
                     ctx.font = `600 ${fontSize * 0.8}px 'Noto Sans Thai', sans-serif`;
-                    ctx.textAlign = 'center';
+                    ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(stampName, W / 2, headerHeight * 0.35);
+                    const mName = ctx.measureText(stampName);
+                    ctx.fillText(stampName, W / 2 - mName.width / 2, headerHeight * 0.35);
                     
                     // Second line: Name
                     ctx.fillStyle = '#1d1d1f'; // Apple black
                     ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
-                    ctx.textAlign = 'center';
+                    ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(stampId, W / 2, headerHeight * 0.7);
+                    const mId = ctx.measureText(stampId);
+                    ctx.fillText(stampId, W / 2 - mId.width / 2, headerHeight * 0.7);
                     
                     // 4. Draw original slip below header
                     ctx.drawImage(img, 0, headerHeight);
@@ -3615,17 +3617,21 @@ img.src = e.target.result;
                 
                 // Fonts: use Kanit with fallbacks (set font BEFORE text alignment to avoid mobile browser resets)
                 ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
-                ctx.textAlign = 'center';
+                ctx.textAlign = 'left'; // Use left alignment and manually center to fix mobile device Thai font metrics bugs
                 ctx.textBaseline = 'middle';
                 
                 const txtLine1 = `${line1Val} รหัส ${rahasVal}`;
                 const txtLine2 = line2Val;
                 const txtLine3 = line3Val;
                 
+                const m1 = ctx.measureText(txtLine1);
+                const m2 = ctx.measureText(txtLine2);
+                const m3 = ctx.measureText(txtLine3);
+                
                 // Line heights centered inside 360px area
-                ctx.fillText(txtLine1, 400, 940);
-                ctx.fillText(txtLine2, 400, 1020);
-                ctx.fillText(txtLine3, 400, 1100);
+                ctx.fillText(txtLine1, 400 - m1.width / 2, 940);
+                ctx.fillText(txtLine2, 400 - m2.width / 2, 1020);
+                ctx.fillText(txtLine3, 400 - m3.width / 2, 1100);
                 
                 const cardBase64 = canvas.toDataURL('image/png');
                 
