@@ -296,8 +296,8 @@ html, body {
 .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
 .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
 .badge-unpaid { background: #e5e5ea; color: #636366; }
-.badge-gys { background: rgba(0, 102, 204, 0.08); color: var(--primary); }
-.badge-self { background: rgba(255, 45, 85, 0.08); color: #ff2d55; }
+.badge-gys { background: rgba(255, 45, 85, 0.08); color: #ff2d55; }
+.badge-self { background: rgba(0, 102, 204, 0.08); color: var(--primary); }
 
 /* Progress Ledger ring styling */
 .ledger-container {
