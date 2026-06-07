@@ -3402,7 +3402,7 @@ img.src = e.target.result;
         let initialOffsetY = 0;
         
         function onMouseDown(e) {
-            if (!hasImage) return;
+            if (!hasImage || e.target.closest('#btn-clear-img')) return;
             isDragging = true;
             cropArea.style.cursor = 'grabbing';
             startDragX = e.clientX;
@@ -3448,7 +3448,7 @@ img.src = e.target.result;
         let initialScale = 1;
 
         function onTouchStart(e) {
-            if (!hasImage) return;
+            if (!hasImage || e.target.closest('#btn-clear-img')) return;
             
             if (e.touches.length === 1) {
                 touchMode = 'drag';
