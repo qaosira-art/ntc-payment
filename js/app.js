@@ -177,17 +177,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 3. Draw text details (Centered)
                     const fontSize = Math.max(22 * scale, 18);
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
                     
                     // First line: Class/ID/Room
                     ctx.fillStyle = '#86868b'; // Apple gray
                     ctx.font = `600 ${fontSize * 0.8}px 'Noto Sans Thai', sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
                     ctx.fillText(stampName, W / 2, headerHeight * 0.35);
                     
                     // Second line: Name
                     ctx.fillStyle = '#1d1d1f'; // Apple black
                     ctx.font = `bold ${fontSize}px 'Noto Sans Thai', sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
                     ctx.fillText(stampId, W / 2, headerHeight * 0.7);
                     
                     // 4. Draw original slip below header
@@ -3236,8 +3238,8 @@ img.src = e.target.result;
         let baseWidth = 0;
         let baseHeight = 0;
         
-        const wrapperWidth = 380; // 380px outer (no borders)
-        const wrapperHeight = 400; // HTML crop wrapper is 400px high
+        const getWrapperWidth = () => cropArea.clientWidth || 380;
+        const getWrapperHeight = () => cropArea.clientHeight || 400;
 
         function getLine1DefaultName() {
             return state.currentStudent ? getCleanName(state.currentStudent.name) : 'นายศิระ ยอแสง';
@@ -3308,15 +3310,17 @@ img.src = e.target.result;
             cropArea.style.cursor = 'grab';
             
             // Calculate cover size
+            const currentWrapperWidth = getWrapperWidth();
+            const currentWrapperHeight = getWrapperHeight();
             const imgAspect = img.naturalWidth / img.naturalHeight;
-            const wrapperAspect = wrapperWidth / wrapperHeight;
+            const wrapperAspect = currentWrapperWidth / currentWrapperHeight;
             
             if (imgAspect > wrapperAspect) {
-                baseHeight = wrapperHeight;
-                baseWidth = wrapperHeight * imgAspect;
+                baseHeight = currentWrapperHeight;
+                baseWidth = currentWrapperHeight * imgAspect;
             } else {
-                baseWidth = wrapperWidth;
-                baseHeight = wrapperWidth / imgAspect;
+                baseWidth = currentWrapperWidth;
+                baseHeight = currentWrapperWidth / imgAspect;
             }
             
             // Reset position
@@ -3590,8 +3594,9 @@ img.src = e.target.result;
                 ctx.rect(0, 0, 800, 840);
                 ctx.clip();
                 
-                // Scale parameters from preview wrapper width (380px) to canvas inner width (800px)
-                const k = 800 / wrapperWidth;
+                // Scale parameters from preview wrapper width to canvas inner width (800px)
+                const currentWrapperWidth = getWrapperWidth();
+                const k = 800 / currentWrapperWidth;
                 const canvasBaseWidth = baseWidth * k;
                 const canvasBaseHeight = baseHeight * k;
                 
@@ -3607,11 +3612,11 @@ img.src = e.target.result;
                 
                 // 3. Draw centered bold text in the white text box area (0, 840, 800, 360)
                 ctx.fillStyle = '#000000';
+                
+                // Fonts: use Kanit with fallbacks (set font BEFORE text alignment to avoid mobile browser resets)
+                ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
-                // Fonts: use Kanit with fallbacks
-                ctx.font = 'bold 36px "Kanit", "Noto Sans Thai", "Sarabun", sans-serif';
                 
                 const txtLine1 = `${line1Val} รหัส ${rahasVal}`;
                 const txtLine2 = line2Val;
