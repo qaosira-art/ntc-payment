@@ -151,6 +151,7 @@ class TuitionStore {
     async addStudent(student) {
         const insertData = { ...student };
         delete insertData.generation;
+        delete insertData.theme; // Theme is stored locally
 
         const { data, error } = await this.supabase
             .from('students')
@@ -177,6 +178,7 @@ class TuitionStore {
     async updateStudent(student) {
         const { id, ...updateData } = student;
         delete updateData.generation;
+        delete updateData.theme; // Theme is stored locally
 
         const { data, error } = await this.supabase
             .from('students')
