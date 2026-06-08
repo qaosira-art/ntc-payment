@@ -250,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderStudentMockGrid();
             setupStudentAuth();
             setupPinModal();
+            setupStudentGridSearch();
             
             // 4. Setup Student Payment Panel
             setupStudentPayment();
@@ -450,9 +451,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // แสดงสถานะกำลังโหลดข้อมูล
         grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #86868b; font-size: 14px;"><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังโหลดข้อมูลจากระบบหลังบ้าน...</div>';
         
-        const students = await window.tuitionStore.getStudents();
+        let students = await window.tuitionStore.getStudents();
         grid.innerHTML = '';
         
+        // Filter if search input has value
+        const searchInput = document.getElementById('input-search-slip-student');
+        if (searchInput && searchInput.value) {
+            const query = searchInput.value.trim().toLowerCase();
+            students = students.filter(s => {
+                return (s.id && s.id.toLowerCase().includes(query)) ||
+                       (s.name && s.name.toLowerCase().includes(query));
+            });
+        }
+        
+        if (students.length === 0) {
+            grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #86868b; font-size: 14px;">ไม่พบข้อมูลนักเรียนที่ค้นหา</div>';
+            return;
+        }
+
         students.forEach(student => {
             const card = document.createElement('div');
             card.className = 'premium-student-row-card';
@@ -509,6 +525,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             grid.appendChild(card);
         });
+    }
+
+    function setupStudentGridSearch() {
+        const searchInput = document.getElementById('input-search-slip-student');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                renderStudentMockGrid();
+            });
+        }
     }
 
     // --- STUDENT PIN AUTHENTICATION LOGIC ---
