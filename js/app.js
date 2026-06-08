@@ -1590,7 +1590,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const submitBtn = document.getElementById('btn-submit-payment');
+            if (submitBtn.disabled) return; // Prevent double click
+            
             const origHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'กำลังส่งข้อมูล... <i class="fa-solid fa-spinner fa-spin" style="margin-left: 6px;"></i>';
+            submitBtn.style.opacity = '0.7';
             
             try {
                 // Validate inputs
@@ -1700,6 +1705,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = origHtml;
+                submitBtn.style.opacity = '1';
             }
         });
 
