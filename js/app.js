@@ -910,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Generate JPEG base64 string
-                const base64Str = canvas.toDataURL('image/jpeg', 0.9);
+                const base64Str = canvas.toDataURL('image/jpeg', 0.6);
                 
                 // Set student avatar image elements on page
                 avatarImg.src = base64Str;
@@ -926,6 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         await window.tuitionStore.updateStudent(state.currentStudent);
                     } catch (dbErr) {
                         console.error("Failed to update student avatar in DB:", dbErr);
+                        alert("อัปโหลดลงฐานข้อมูลไม่สำเร็จ: " + (dbErr.message || JSON.stringify(dbErr)));
                     }
                     await notifyDbUpdate('students', state.currentStudent.id);
                 }
