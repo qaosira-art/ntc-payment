@@ -79,15 +79,29 @@ class TuitionStore {
         if (error) throw error;
         const result = data || [];
 
-        // Sort by created_at ascending to ensure stable positioning (new students go to the end)
-        if (result.length > 0 && result[0].created_at !== undefined) {
-            result.sort((a, b) => {
-                // Treat null/undefined created_at as newest so they go to the bottom
-                const tA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
-                const tB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
-                return tA - tB;
-            });
-        }
+        // Sort students logically: Mock data (STD) first, then sort by Student ID numerically
+        result.sort((a, b) => {
+            const isStdA = a.id && a.id.startsWith('STD');
+            const isStdB = b.id && b.id.startsWith('STD');
+            
+            // If one is STD and other is not, STD comes first
+            if (isStdA && !isStdB) return -1;
+            if (!isStdA && isStdB) return 1;
+            
+            // If both are numeric (or neither are STD)
+            if (!isStdA && !isStdB) {
+                // Try parsing as integers for numeric sorting
+                const numA = parseInt(a.id, 10);
+                const numB = parseInt(b.id, 10);
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return numA - numB;
+                }
+            }
+            
+            // Fallback to alphabetical sorting
+            return (a.id || '').localeCompare(b.id || '');
+        });
         
         // Apply local avatar overrides
         result.forEach(student => {
@@ -136,7 +150,6 @@ class TuitionStore {
 
     async addStudent(student) {
         const insertData = { ...student };
-        delete insertData.avatar;
         delete insertData.generation;
 
         const { data, error } = await this.supabase
@@ -145,10 +158,10 @@ class TuitionStore {
             .select()
             .single();
         if (error) {
-            // Check if column mismatch error (postgrest PGRST102)
-            if (error.code === 'PGRST102' || error.message.includes('funding')) {
-                console.warn("Database schema is missing 'funding' column. Falling back to name suffixing...");
-                const { funding, ...fallbackStudent } = insertData;
+            // Check if column mismatch error (postgrest PGRST102 / PGRST116)
+            if (error.code === 'PGRST102' || error.code === 'PGRST116' || error.message.includes('funding')) {
+                console.warn("Database schema is missing columns. Falling back to safe schema...");
+                const { funding, avatar, ...fallbackStudent } = insertData;
                 let cleanName = insertData.name || '';
                 if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
                 else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
@@ -163,7 +176,6 @@ class TuitionStore {
 
     async updateStudent(student) {
         const { id, ...updateData } = student;
-        delete updateData.avatar;
         delete updateData.generation;
 
         const { data, error } = await this.supabase
@@ -173,10 +185,10 @@ class TuitionStore {
             .select()
             .single();
         if (error) {
-            // Check if column mismatch error (postgrest PGRST102)
-            if (error.code === 'PGRST102' || error.message.includes('funding')) {
-                console.warn("Database schema is missing 'funding' column. Falling back to name suffixing...");
-                const { funding, ...fallbackData } = updateData;
+            // Check if column mismatch error (postgrest PGRST102 / PGRST116)
+            if (error.code === 'PGRST102' || error.code === 'PGRST116' || error.message.includes('funding')) {
+                console.warn("Database schema is missing columns. Falling back to safe schema...");
+                const { funding, avatar, ...fallbackData } = updateData;
                 let cleanName = student.name || '';
                 if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
                 else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
