@@ -81,10 +81,12 @@ class TuitionStore {
 
         // Sort by created_at ascending to ensure stable positioning (new students go to the end)
         if (result.length > 0 && result[0].created_at !== undefined) {
-            result.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        } else {
-            // Fallback to alphabetical sorting by student ID
-            result.sort((a, b) => a.id.localeCompare(b.id));
+            result.sort((a, b) => {
+                // Treat null/undefined created_at as newest so they go to the bottom
+                const tA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+                const tB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+                return tA - tB;
+            });
         }
         
         // Apply local avatar overrides
