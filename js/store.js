@@ -161,7 +161,7 @@ class TuitionStore {
             // Check if column mismatch error (postgrest PGRST102 / PGRST116)
             if (error.code === 'PGRST102' || error.code === 'PGRST116' || error.message.includes('funding')) {
                 console.warn("Database schema is missing columns. Falling back to safe schema...");
-                const { funding, avatar, ...fallbackStudent } = insertData;
+                const { funding, ...fallbackStudent } = insertData; // Keep avatar!
                 let cleanName = insertData.name || '';
                 if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
                 else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
@@ -188,7 +188,7 @@ class TuitionStore {
             // Check if column mismatch error (postgrest PGRST102 / PGRST116)
             if (error.code === 'PGRST102' || error.code === 'PGRST116' || error.message.includes('funding')) {
                 console.warn("Database schema is missing columns. Falling back to safe schema...");
-                const { funding, avatar, ...fallbackData } = updateData;
+                const { funding, ...fallbackData } = updateData; // Keep avatar!
                 let cleanName = student.name || '';
                 if (cleanName.endsWith('(กยศ)')) cleanName = cleanName.slice(0, -6).trim();
                 else if (cleanName.endsWith('(จ่ายเอง)')) cleanName = cleanName.slice(0, -10).trim();
