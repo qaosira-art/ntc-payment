@@ -79,16 +79,24 @@ class TuitionStore {
         if (error) throw error;
         const result = data || [];
 
-        // Sort students logically: Mock data (STD) first, then sort by Student ID numerically
+        // Sort logically: If created_at exists, sort by creation time (oldest first, new students at bottom).
+        // If created_at is missing, fallback to Mock (STD) first, then numeric ID.
         result.sort((a, b) => {
             const isStdA = a.id && a.id.startsWith('STD');
             const isStdB = b.id && b.id.startsWith('STD');
             
-            // If one is STD and other is not, STD comes first
+            // Mock data always stays at the top
             if (isStdA && !isStdB) return -1;
             if (!isStdA && isStdB) return 1;
+
+            // If we have created_at, use it to ensure new additions go to the bottom
+            if (a.created_at || b.created_at) {
+                const tA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+                const tB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+                if (tA !== tB) return tA - tB;
+            }
             
-            // If both are numeric (or neither are STD)
+            // Fallback: If both are numeric (or neither are STD)
             if (!isStdA && !isStdB) {
                 // Try parsing as integers for numeric sorting
                 const numA = parseInt(a.id, 10);
@@ -99,7 +107,7 @@ class TuitionStore {
                 }
             }
             
-            // Fallback to alphabetical sorting
+            // Absolute fallback to alphabetical sorting
             return (a.id || '').localeCompare(b.id || '');
         });
         
