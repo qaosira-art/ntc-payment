@@ -3587,17 +3587,10 @@ img.src = e.target.result;
                 const line2Val = line2Input.value.trim();
                 const line3Val = line3Input.value.trim();
 
-                if (state.currentStudent) {
-                    studentId = state.currentStudent.id;
-                    studentName = getCleanName(state.currentStudent.name);
-                    roomVal = state.currentStudent.room || '';
-                    yearVal = state.currentStudent.year || '';
-                } else {
-                    studentId = rahasVal.toUpperCase();
-                    studentName = line1Val;
-                    roomVal = line2Val;
-                    yearVal = line3Val;
-                }
+                studentId = rahasVal.toUpperCase();
+                studentName = line1Val;
+                roomVal = line2Val;
+                yearVal = line3Val;
 
                 let dbStudentId = 'STD001';
                 try {
