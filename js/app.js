@@ -2384,8 +2384,6 @@ img.src = e.target.result;
         const emptyState = document.getElementById('cards-empty-state');
         if (!gallery || !emptyState) return;
 
-        gallery.innerHTML = '';
-        
         try {
             const cards = await window.tuitionStore.getIntroCards();
             
@@ -2454,6 +2452,7 @@ img.src = e.target.result;
                 return timeA - timeB; // Chronological order inside student's group
             });
 
+            const fragment = document.createDocumentFragment();
             for (const card of cards) {
                 let cleanName = 'ไม่ระบุชื่อ';
                 let cardId = card.studentId;
@@ -2604,8 +2603,11 @@ img.src = e.target.result;
                     }
                 });
 
-                gallery.appendChild(item);
+                fragment.appendChild(item);
             }
+
+            gallery.innerHTML = '';
+            gallery.appendChild(fragment);
 
             // Bind download buttons
             gallery.querySelectorAll('.btn-admin-download-card').forEach(btn => {
