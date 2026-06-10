@@ -676,7 +676,7 @@ html, body {
     gap: 8px;
     height: 48px;
     padding: 0 28px;
-    border-radius: 999px;
+    border-radius: 6px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -723,7 +723,7 @@ html, body {
     height: 36px;
     padding: 0 16px;
     font-size: 13px;
-    border-radius: 999px;
+    border-radius: 6px;
 }
 
 /* Copy button tooltip pulse */
@@ -2583,10 +2583,13 @@ html.no-scroll, body.no-scroll {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
+    flex: 1;
+    justify-content: center;
     align-items: center;
     gap: 8px;
     font-family: inherit;
     outline: none;
+    white-space: nowrap;
 }
 
 .admin-segmented-btn:hover:not(.active) {
