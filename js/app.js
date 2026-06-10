@@ -330,6 +330,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
+                if (targetViewId === 'view-student-album') {
+                    renderStudentAlbum();
+                }
+                
                 // Normal view switch
                 switchView(targetViewId);
             });
@@ -376,6 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (targetView === 'view-image-tool') {
                 const tabImage = document.getElementById('tab-image-tool');
                 if (tabImage) tabImage.classList.add('active');
+            } else if (targetView === 'view-student-album') {
+                const tabAlbum = document.getElementById('tab-album');
+                if (tabAlbum) tabAlbum.classList.add('active');
+                renderStudentAlbum();
             }
             switchView(targetView);
         }
@@ -383,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobTabStudent = document.getElementById('mob-tab-student');
         const mobTabAdmin = document.getElementById('mob-tab-admin');
         const mobTabImageTool = document.getElementById('mob-tab-image-tool');
+        const mobTabAlbum = document.getElementById('mob-tab-album');
         if (mobTabStudent) {
             mobTabStudent.addEventListener('click', () => handleMobileNav('view-student-auth', 'mob-tab-student'));
         }
@@ -391,6 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (mobTabImageTool) {
             mobTabImageTool.addEventListener('click', () => handleMobileNav('view-image-tool', 'mob-tab-image-tool'));
+        }
+        if (mobTabAlbum) {
+            mobTabAlbum.addEventListener('click', () => handleMobileNav('view-student-album', 'mob-tab-album'));
         }
 
         // Logo click goes home / student auth or logs out student if logged in (acting as back button)
@@ -402,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.removeItem('currentStudentId');
                 resetPaymentForm();
                 if (state.timerInterval) clearInterval(state.timerInterval);
+                toggleImageMenu(false);
                 renderStudentMockGrid();
                 switchView('view-student-auth');
             } else {
@@ -1066,10 +1079,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clear interval
                 if (state.timerInterval) clearInterval(state.timerInterval);
 
+                toggleImageMenu(false);
+
                 // Re-render mock profile status list and switch view
                 renderStudentMockGrid();
                 switchView('view-student-auth');
             });
+        }
+    }
+
+    function toggleImageMenu(show) {
+        const desktopTab = document.getElementById('tab-image-tool');
+        const mobileDivider = document.getElementById('mob-tab-image-divider');
+        const mobileTab = document.getElementById('mob-tab-image-tool');
+        
+        if (show) {
+            if (desktopTab) desktopTab.style.display = '';
+            if (mobileDivider) mobileDivider.style.display = '';
+            if (mobileTab) mobileTab.style.display = '';
+        } else {
+            if (desktopTab) desktopTab.style.display = 'none';
+            if (mobileDivider) mobileDivider.style.display = 'none';
+            if (mobileTab) mobileTab.style.display = 'none';
         }
     }
 
@@ -1090,6 +1121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set header active state
         document.querySelectorAll('.app-header .nav-tab').forEach(t => t.classList.remove('active'));
         document.getElementById('tab-student-portal').classList.add('active');
+        
+        // Show Image Menu
+        toggleImageMenu(true);
 
         // Update Student View Info
         document.getElementById('student-display-name').textContent = cleanName;
@@ -2453,6 +2487,20 @@ img.src = e.target.result;
             });
 
             const fragment = document.createDocumentFragment();
+            async function markCardViewed(cardId) {
+                const card = cards.find(c => c.id.toString() === cardId.toString());
+                if (card && card.status === 'card_new') {
+                    card.status = 'card';
+                    try {
+                        await window.tuitionStore.updatePayment({ id: card.id, status: 'card' });
+                        const badge = document.getElementById(`new-badge-${card.id}`);
+                        if (badge) badge.style.display = 'none';
+                    } catch (err) {
+                        console.error('Failed to update card status:', err);
+                    }
+                }
+            }
+
             for (const card of cards) {
                 let cleanName = 'ไม่ระบุชื่อ';
                 let cardId = card.studentId;
@@ -2491,11 +2539,14 @@ img.src = e.target.result;
                 if (!workplaceName) workplaceName = '-';
 
                 const seq = cardSeqMap[card.id] || 1;
-                const downloadFilename = `${cleanName} ${cardId} (${seq}).png`;
+                const downloadFilename = `${cardId} (${seq}).png`;
 
                 const formattedDate = new Date(card.dateTime).toLocaleString('th-TH', {
                     year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 }).replace(':', '.');
+
+                const isNew = card.status === 'card_new';
+                const newBadgeHtml = isNew ? `<div id="new-badge-${card.id}" style="position: absolute; top: 0; left: 0; background: #e02424; color: white; padding: 4px 10px; border-radius: 0; font-size: 11px; font-weight: 700; z-index: 2; letter-spacing: 0.5px;">NEW</div>` : '';
 
                 const item = document.createElement('div');
                 item.className = 'slip-gallery-card';
@@ -2518,21 +2569,16 @@ img.src = e.target.result;
                 };
 
                 item.innerHTML = `
-                    <div class="card-image-box" style="width: 100%; height: 260px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid var(--neutral-border); position: relative; cursor: pointer;">
+                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: transparent; border: none; position: relative; cursor: pointer;">
+                        ${newBadgeHtml}
                         <img src="${card.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="ภาพฝึกงาน">
-                        <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                            <i class="fa-solid fa-expand"></i>
-                        </div>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark);">${cleanName} (${seq})</div>
                         <div style="font-size: 12px; color: #86868b; font-weight: 500;">รหัสประจำตัว: ${cardId}</div>
-                        <div style="font-size: 12px; color: #86868b; font-weight: 500;">โรงเรียนเดิม: ${schoolName}</div>
-                        <div style="font-size: 12px; color: #86868b; font-weight: 500;">สถานที่ทำงาน: ${workplaceName}</div>
-                        <div style="font-size: 11px; color: #aeaeb2; font-weight: 500; margin-top: 4px;">บันทึกเมื่อ: ${formattedDate}</div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-download-card" data-href="${card.slipImage}" data-filename="${downloadFilename}" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-download-card" data-card-id="${card.id}" data-href="${card.slipImage}" data-filename="${downloadFilename}" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
                             <i class="fa-solid fa-download"></i> ดาวน์โหลด
                         </button>
                         <button class="btn-modern btn-modern-danger btn-modern-sm btn-admin-delete-card" data-card-id="${card.id}" data-student-name="${cleanName}" style="height: 36px; width: 36px; min-width: 36px; padding: 0; font-size: 13px; display: flex; align-items: center; justify-content: center;" title="ลบรูปภาพ">
@@ -2555,6 +2601,7 @@ img.src = e.target.result;
                         if (downloadBtn) {
                             downloadBtn.href = card.slipImage;
                             downloadBtn.download = downloadFilename;
+                            downloadBtn.onclick = () => markCardViewed(card.id);
                         }
                         
                         const paperReceipt = document.querySelector('.receipt-paper');
@@ -2613,6 +2660,8 @@ img.src = e.target.result;
             gallery.querySelectorAll('.btn-admin-download-card').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    const cardId = btn.getAttribute('data-card-id');
+                    if (cardId) markCardViewed(cardId);
                     const a = document.createElement('a');
                     a.href = btn.getAttribute('data-href');
                     a.download = btn.getAttribute('data-filename');
@@ -2650,6 +2699,207 @@ img.src = e.target.result;
         } catch (err) {
             console.error('Render admin cards error:', err);
             gallery.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger-text); padding: 40px;"><i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถดึงข้อมูลรูปภาพการแนะนำตัวได้: ${err.message || JSON.stringify(err)}</div>`;
+        }
+    }
+
+    async function renderStudentAlbum() {
+        const gallery = document.getElementById('student-album-gallery');
+        const emptyState = document.getElementById('album-empty-state');
+        if (!gallery || !emptyState) return;
+
+        try {
+            const cards = await window.tuitionStore.getIntroCards();
+            
+            if (cards.length === 0) {
+                emptyState.style.display = 'block';
+                gallery.style.display = 'none';
+                return;
+            }
+
+            const studentsList = await window.tuitionStore.getStudents();
+            const studentMap = {};
+            studentsList.forEach(s => {
+                studentMap[s.id] = s;
+            });
+
+            emptyState.style.display = 'none';
+            gallery.style.display = 'grid';
+
+            // Precalculate chronological sequence numbers per student (oldest to newest)
+            const cardSeqMap = {};
+            const cardsWithId = cards.map(c => {
+                let actualId = c.studentId;
+                if (c.comment && c.comment.startsWith('CARD_INFO:')) {
+                    try {
+                        const info = JSON.parse(c.comment.substring(10));
+                        actualId = info.id;
+                    } catch (e) {}
+                }
+                return { c, actualId };
+            });
+
+            cardsWithId.sort((a, b) => {
+                return new Date(a.c.dateTime).getTime() - new Date(b.c.dateTime).getTime();
+            });
+
+            const studentCounts = {};
+            const earliestUploadMap = {};
+            const cardToStudentIdMap = {};
+            
+            cardsWithId.forEach(item => {
+                const id = item.actualId;
+                cardToStudentIdMap[item.c.id] = id;
+                const time = new Date(item.c.dateTime).getTime();
+                
+                if (earliestUploadMap[id] === undefined || time < earliestUploadMap[id]) {
+                    earliestUploadMap[id] = time;
+                }
+                
+                if (!studentCounts[id]) {
+                    studentCounts[id] = 0;
+                }
+                studentCounts[id]++;
+                cardSeqMap[item.c.id] = studentCounts[id];
+            });
+
+            cards.sort((a, b) => {
+                const sIdA = cardToStudentIdMap[a.id];
+                const sIdB = cardToStudentIdMap[b.id];
+                
+                const earliestA = earliestUploadMap[sIdA] || 0;
+                const earliestB = earliestUploadMap[sIdB] || 0;
+                
+                if (earliestA !== earliestB) {
+                    return earliestA - earliestB; // Group by student earliest upload
+                }
+                
+                const timeA = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+                const timeB = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+                return timeA - timeB; // Chronological order inside student's group
+            });
+
+            const fragment = document.createDocumentFragment();
+            for (const card of cards) {
+                let cleanName = 'ไม่ระบุชื่อ';
+                let cardId = card.studentId;
+
+                if (card.comment && card.comment.startsWith('CARD_INFO:')) {
+                    try {
+                        const info = JSON.parse(card.comment.substring(10));
+                        cleanName = info.name;
+                        cardId = info.id;
+                    } catch (e) {
+                        console.error("Error parsing card info:", e);
+                    }
+                } else {
+                    const student = studentMap[card.studentId];
+                    const stdName = student ? student.name : 'ไม่ระบุชื่อ';
+                    cleanName = getCleanName(stdName);
+                }
+
+                const seq = cardSeqMap[card.id] || 1;
+
+                const item = document.createElement('div');
+                item.className = 'slip-gallery-card';
+                item.style.background = 'var(--neutral-light)';
+                item.style.borderRadius = '16px';
+                item.style.padding = '16px';
+                item.style.border = '1px solid var(--neutral-border)';
+                item.style.display = 'flex';
+                item.style.flexDirection = 'column';
+                item.style.gap = '12px';
+                item.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease';
+                
+                item.onmouseover = () => {
+                    item.style.transform = 'translateY(-4px)';
+                    item.style.boxShadow = 'var(--shadow-md)';
+                };
+                item.onmouseout = () => {
+                    item.style.transform = 'none';
+                    item.style.boxShadow = 'none';
+                };
+
+                item.innerHTML = `
+                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: transparent; border: none; position: relative; cursor: pointer;">
+                        <img src="${card.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="ภาพฝึกงาน">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark); text-align: center;">${cleanName} (${seq})</div>
+                        <div style="font-size: 12px; color: #86868b; font-weight: 500; text-align: center;">รหัสประจำตัว: ${cardId}</div>
+                    </div>
+                `;
+
+                // Expand preview image click handler
+                item.querySelector('.card-image-box').addEventListener('click', () => {
+                    const modal = document.getElementById('modal-receipt');
+                    const modalContent = document.querySelector('#modal-receipt .premium-modal-content');
+                    const slipViewer = document.getElementById('receipt-slip-viewer');
+                    const slipImg = document.getElementById('receipt-slip-img');
+                    const downloadBtn = document.getElementById('btn-download-slip');
+                    
+                    if (modal && slipViewer && slipImg) {
+                        slipViewer.style.display = 'block';
+                        slipImg.src = card.slipImage;
+                        if (downloadBtn) {
+                            downloadBtn.style.display = 'none';
+                        }
+                        
+                        const paperReceipt = document.querySelector('.receipt-paper');
+                        if (paperReceipt) paperReceipt.style.display = 'none';
+                        const printBtn = document.getElementById('btn-receipt-print');
+                        if (printBtn && printBtn.parentElement) printBtn.parentElement.style.display = 'none';
+
+                        if (modalContent) {
+                            modalContent.style.background = 'transparent';
+                            modalContent.style.border = 'none';
+                            modalContent.style.boxShadow = 'none';
+                            modalContent.style.padding = '0';
+                            modalContent.style.position = 'relative';
+                        }
+                        
+                        const closeBtn = document.getElementById('btn-close-receipt-modal');
+                        if (closeBtn) {
+                            closeBtn.style.background = 'rgba(0,0,0,0.55)';
+                            closeBtn.style.color = '#fff';
+                            closeBtn.style.border = 'none';
+                            closeBtn.style.position = 'absolute';
+                            closeBtn.style.top = '-12px';
+                            closeBtn.style.right = '-12px';
+                            closeBtn.style.zIndex = '10';
+                            
+                            closeBtn.onclick = () => {
+                                modal.classList.remove('active');
+                                if (modalContent) {
+                                    modalContent.style.background = '';
+                                    modalContent.style.border = '';
+                                    modalContent.style.boxShadow = '';
+                                    modalContent.style.padding = '';
+                                    modalContent.style.position = '';
+                                }
+                                closeBtn.style.background = '';
+                                closeBtn.style.color = '';
+                                closeBtn.style.border = '';
+                                closeBtn.style.position = '';
+                                closeBtn.style.top = '';
+                                closeBtn.style.right = '';
+                                closeBtn.style.zIndex = '';
+                                if (downloadBtn) downloadBtn.style.display = '';
+                            };
+                        }
+                        
+                        modal.classList.add('active');
+                    }
+                });
+
+                fragment.appendChild(item);
+            }
+
+            gallery.innerHTML = '';
+            gallery.appendChild(fragment);
+
+        } catch (err) {
+            console.error('Render student album error:', err);
+            gallery.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger-text); padding: 40px;"><i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถดึงข้อมูลอัลบั้มได้: ${err.message || JSON.stringify(err)}</div>`;
         }
     }
 
@@ -3294,7 +3544,7 @@ img.src = e.target.result;
         function updateLabels() {
             const namePart = line1Input.value.trim() || getLine1DefaultName();
             const rahasPart = rahasInput.value.trim() || getLine1DefaultRahas();
-            lblLine1.textContent = `${namePart} รหัส ${rahasPart}`;
+            lblLine1.textContent = `${namePart} ${rahasPart}`;
             lblLine2.textContent = line2Input.value.trim() || getLine2Default();
             lblLine3.textContent = line3Input.value.trim() || getLine3Default();
         }
@@ -3308,8 +3558,8 @@ img.src = e.target.result;
             if (state.currentStudent) {
                 line1Input.value = getCleanName(state.currentStudent.name);
                 rahasInput.value = state.currentStudent.id;
-                line2Input.value = 'ห้อง ' + (state.currentStudent.room || '');
-                line3Input.value = 'รุ่น ' + (state.currentStudent.year || '');
+                line2Input.value = 'โรงเรียนเดิม';
+                line3Input.value = 'บริษัท';
             } else {
                 line1Input.value = '';
                 rahasInput.value = '';
@@ -3368,6 +3618,24 @@ img.src = e.target.result;
         };
 
         function updateImageTransform() {
+            // Prevent zooming out smaller than the container
+            if (scale < 1) scale = 1;
+            if (scale > 10) scale = 10;
+            
+            const cw = getWrapperWidth();
+            const ch = getWrapperHeight();
+            
+            // Calculate max allowed offsets to prevent empty space
+            const maxOffsetX = Math.max(0, (baseWidth * scale - cw) / 2);
+            const maxOffsetY = Math.max(0, (baseHeight * scale - ch) / 2);
+            
+            // Clamp X and Y
+            if (offsetX > maxOffsetX) offsetX = maxOffsetX;
+            if (offsetX < -maxOffsetX) offsetX = -maxOffsetX;
+            
+            if (offsetY > maxOffsetY) offsetY = maxOffsetY;
+            if (offsetY < -maxOffsetY) offsetY = -maxOffsetY;
+
             previewImg.style.width = `${baseWidth}px`;
             previewImg.style.height = `${baseHeight}px`;
             previewImg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
@@ -3563,7 +3831,10 @@ img.src = e.target.result;
         window.addEventListener('touchcancel', onTouchEnd);
 
         // Save logic (modified: saves data to DB, no auto-download)
+        let isSavingImage = false;
         downloadBtn.addEventListener('click', async () => {
+            if (isSavingImage) return;
+            
             if (!hasImage) {
                 alert('กรุณาอัปโหลดรูปภาพก่อนทำการบันทึก');
                 return;
@@ -3574,6 +3845,7 @@ img.src = e.target.result;
                 return;
             }
 
+            isSavingImage = true;
             const origHtml = downloadBtn.innerHTML;
             downloadBtn.disabled = true;
             downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
@@ -3647,7 +3919,7 @@ img.src = e.target.result;
                 ctx.textAlign = 'left'; // Use left alignment and manually center to fix mobile device Thai font metrics bugs
                 ctx.textBaseline = 'middle';
                 
-                const txtLine1 = `${line1Val} รหัส ${rahasVal}`;
+                const txtLine1 = `${line1Val} ${rahasVal}`;
                 const txtLine2 = line2Val;
                 const txtLine3 = line3Val;
                 
@@ -3724,6 +3996,7 @@ img.src = e.target.result;
                 console.error("Save card error:", err);
                 alert(`❌ เกิดข้อผิดพลาดในการบันทึกรูปภาพ: ${err.message || JSON.stringify(err)}`);
             } finally {
+                isSavingImage = false;
                 downloadBtn.disabled = false;
                 downloadBtn.innerHTML = origHtml;
             }

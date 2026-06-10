@@ -881,7 +881,7 @@ class TuitionStore {
             dateTime: new Date().toISOString().slice(0, 19),
             slipImage: imageBase64,
             slipName: `card_${cardId}_${Date.now()}.png`,
-            status: 'card',
+            status: 'card_new',
             refNo: uniqueRefNo,
             verificationDate: new Date().toISOString().slice(0, 19),
             comment: commentText || 'ภาพฝึกงานนักศึกษา'
@@ -908,7 +908,7 @@ class TuitionStore {
         const { data, error } = await this.supabase
             .from('payments')
             .select('*')
-            .eq('status', 'card')
+            .in('status', ['card', 'card_new'])
             .order('dateTime', { ascending: false });
         if (error) throw error;
         

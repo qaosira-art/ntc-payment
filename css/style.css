@@ -2631,3 +2631,15 @@ html.no-scroll, body.no-scroll {
     min-width: 0 !important;
     min-height: 0 !important;
 }
+
+
+/* Responsive Gallery Grid */
+.responsive-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 768px) {
+    .responsive-gallery-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

@@ -40,7 +40,8 @@
             
             <nav class="nav-links">
                 <a href="#" class="nav-tab active" id="tab-student-portal" data-target="view-student-auth"><i class="fa-solid fa-user-graduate"></i> นักศึกษา</a>
-                <a href="#" class="nav-tab" id="tab-image-tool" data-target="view-image-tool"><i class="fa-solid fa-image"></i> รูปภาพ</a>
+                <a href="#" class="nav-tab" id="tab-image-tool" data-target="view-image-tool" style="display: none;"><i class="fa-solid fa-image"></i> อัพรูปฝึกงาน</a>
+                <a href="#" class="nav-tab" id="tab-album" data-target="view-student-album"><i class="fa-solid fa-images"></i> อัลบั้ม</a>
                 <a href="#" class="nav-tab" id="tab-admin-portal" data-target="view-admin-auth"><i class="fa-solid fa-user-tie"></i> ที่ปรึกษา</a>
             </nav>
 
@@ -75,12 +76,20 @@
                     <span class="mobile-nav-subtitle">ตรวจสอบหลักฐาน / จัดการข้อมูล</span>
                 </div>
             </button>
-            <div class="mobile-nav-divider"></div>
-            <button class="mobile-nav-item" id="mob-tab-image-tool">
+            <div class="mobile-nav-divider" id="mob-tab-image-divider" style="display: none;"></div>
+            <button class="mobile-nav-item" id="mob-tab-image-tool" style="display: none;">
                 <div class="mobile-nav-icon" style="color: #ea580c; background: rgba(234, 88, 12, 0.1);"><i class="fa-solid fa-image"></i></div>
                 <div class="mobile-nav-details">
-                    <span class="mobile-nav-title">รูปภาพ</span>
+                    <span class="mobile-nav-title">อัพรูปฝึกงาน</span>
                     <span class="mobile-nav-subtitle">จัดทำภาพฝึกงาน</span>
+                </div>
+            </button>
+            <div class="mobile-nav-divider"></div>
+            <button class="mobile-nav-item" id="mob-tab-album">
+                <div class="mobile-nav-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-images"></i></div>
+                <div class="mobile-nav-details">
+                    <span class="mobile-nav-title">อัลบั้ม</span>
+                    <span class="mobile-nav-subtitle">รวมภาพฝึกงานนักศึกษา</span>
                 </div>
             </button>
             <div id="install-pwa-divider" class="mobile-nav-divider" style="display: none;"></div>
@@ -388,12 +397,12 @@
                             
                             <div class="form-field">
                                 <label for="img-tool-line1" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">ชื่อ - นามสกุล</label>
-                                <input type="text" id="img-tool-line1" placeholder="นายศิระ ยอแสง" style="width: 100%; box-sizing: border-box;">
+                                <input type="text" id="img-tool-line1" placeholder="นายศิระ ยอแสง" style="width: 100%; box-sizing: border-box; background-color: #f8fafc; color: #64748b; cursor: not-allowed;" readonly>
                             </div>
 
                             <div class="form-field">
                                 <label for="img-tool-rahas" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">รหัสนักศึกษา</label>
-                                <input type="text" id="img-tool-rahas" placeholder="250001" style="width: 100%; box-sizing: border-box;">
+                                <input type="text" id="img-tool-rahas" placeholder="250001" style="width: 100%; box-sizing: border-box; background-color: #f8fafc; color: #64748b; cursor: not-allowed;" readonly>
                             </div>
                             
                             <div class="form-field">
@@ -556,7 +565,7 @@
                         </h3>
                     </div>
                     
-                    <div id="admin-cards-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px;">
+                    <div id="admin-cards-gallery" class="responsive-gallery-grid" style="display: grid; gap: 16px;">
                         <!-- Cards rendered dynamically -->
                     </div>
                     
@@ -565,6 +574,25 @@
                         <p style="font-size: 15px; font-weight: 600; color: var(--neutral-dark);">ยังไม่มีการส่งภาพฝึกงาน</p>
                         <p style="font-size: 12px; color: #86868b; margin-top: 4px;">นักเรียนยังไม่ได้ทำการบันทึกข้อมูลรูปภาพฝึกงานลงระบบ</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- VIEW 5: STUDENT ALBUM                        -->
+        <!-- ============================================ -->
+        <section id="view-student-album" class="view-section hidden">
+            <div class="card-panel" style="max-width: 1000px; margin: 40px auto 0; padding: 32px;">
+                <h2 style="font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #1d1d1f; text-align: center;">อัลบั้มภาพฝึกงาน</h2>
+                <p style="font-size: 15px; color: #86868b; margin-bottom: 32px; text-align: center;">รวมภาพฝึกงานของนักศึกษาทั้งหมด</p>
+                
+                <div id="student-album-gallery" class="responsive-gallery-grid" style="display: grid; gap: 16px;">
+                    <!-- Cards rendered dynamically -->
+                </div>
+                
+                <div class="text-center" id="album-empty-state" style="padding: 80px 0; color: #86868b; display: none;">
+                    <i class="fa-regular fa-images" style="font-size: 48px; margin-bottom: 16px; opacity: 0.6; display: block; margin-left: auto; margin-right: auto;"></i>
+                    <p style="font-size: 15px; font-weight: 600; color: var(--neutral-dark);">ยังไม่มีภาพในอัลบั้ม</p>
                 </div>
             </div>
         </section>
@@ -752,7 +780,7 @@
 
             <div id="receipt-slip-viewer" style="display: none; text-align: center;">
                 <div style="display: inline-flex; flex-direction: column; align-items: stretch; max-width: 100%;">
-                    <img src="" id="receipt-slip-img" style="max-width: 100%; max-height: 80vh; width: auto; object-fit: contain; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" alt="สลิปโอนเงิน">
+                    <img src="" id="receipt-slip-img" style="max-width: 100%; max-height: 80vh; width: auto; object-fit: contain; border-radius: 0; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" alt="สลิปโอนเงิน">
                     <a href="#" id="btn-download-slip" download="receipt.png" class="btn-modern btn-modern-primary" style="width: 100%; justify-content: center; text-decoration: none; box-sizing: border-box;">
                         <i class="fa-solid fa-download"></i> SAVE
                     </a>
