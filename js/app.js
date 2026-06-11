@@ -2329,6 +2329,11 @@ img.src = e.target.result;
                    s.room.toLowerCase().includes(query);
         });
 
+        const countSpan = document.getElementById('admin-students-count');
+        if (countSpan) {
+            countSpan.textContent = `(${filtered.length})`;
+        }
+
         filtered.forEach(s => {
             const remaining = s.totalTuition - s.paidAmount;
             
