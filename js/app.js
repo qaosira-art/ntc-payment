@@ -2743,16 +2743,32 @@ img.src = e.target.result;
 
             // Bind download buttons
             gallery.querySelectorAll('.btn-admin-download-card').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+                btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const cardId = btn.getAttribute('data-card-id');
                     if (cardId) markCardViewed(cardId);
-                    const a = document.createElement('a');
-                    a.href = btn.getAttribute('data-href');
-                    a.download = btn.getAttribute('data-filename');
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                    
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+                    
+                    let href = btn.getAttribute('data-href');
+                    if (!href || !href.startsWith('data:image')) {
+                        href = await window.tuitionStore.getPaymentImage(cardId);
+                        if (href) btn.setAttribute('data-href', href);
+                    }
+                    
+                    if (icon) icon.className = 'fa-solid fa-download';
+                    
+                    if (href) {
+                        const a = document.createElement('a');
+                        a.href = href;
+                        a.download = btn.getAttribute('data-filename');
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    } else {
+                        alert("ไม่สามารถดาวน์โหลดภาพได้");
+                    }
                 });
             });
 
