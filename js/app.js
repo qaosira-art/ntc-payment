@@ -2574,16 +2574,17 @@ img.src = e.target.result;
                 };
 
                 item.innerHTML = `
-                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: transparent; border: none; position: relative; cursor: pointer;">
+                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: #f0f0f0; border: none; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                         ${newBadgeHtml}
-                        <img src="${card.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="ภาพฝึกงาน">
+                        <span class="lazy-spinner" style="width: 24px; height: 24px; border: 3px solid #ccc; border-top-color: #333; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                        <img class="lazy-slip-image" data-id="${card.id}" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;" alt="ภาพฝึกงาน">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark);">${cleanName} (${seq})</div>
                         <div style="font-size: 12px; color: #86868b; font-weight: 500;">รหัสประจำตัว: ${cardId}</div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-download-card" data-card-id="${card.id}" data-href="${card.slipImage}" data-filename="${downloadFilename}" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <button class="btn-modern btn-modern-secondary btn-modern-sm btn-admin-download-card" data-card-id="${card.id}" data-href="" data-filename="${downloadFilename}" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
                             <i class="fa-solid fa-download"></i> ดาวน์โหลด
                         </button>
                         <button class="btn-modern btn-modern-danger btn-modern-sm btn-admin-delete-card" data-card-id="${card.id}" data-student-name="${cleanName}" style="height: 36px; width: 36px; min-width: 36px; padding: 0; font-size: 13px; display: flex; align-items: center; justify-content: center;" title="ลบรูปภาพ">
@@ -2602,9 +2603,21 @@ img.src = e.target.result;
                     
                     if (modal && slipViewer && slipImg) {
                         slipViewer.style.display = 'block';
-                        slipImg.src = card.slipImage;
+                        slipImg.src = '';
+                        let loader = document.getElementById('full-img-loader');
+                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'color:white;text-align:center;margin-top:20px;'; slipViewer.prepend(loader); }
+                        loader.innerText = 'กำลังโหลดภาพขนาดปกติ...';
+                        loader.style.display = 'block';
+                        
+                        const loadImg = async () => {
+                            let b64 = card.slipImage;
+                            if (!b64) { b64 = await window.tuitionStore.getPaymentImage(card.id); card.slipImage = b64; }
+                            if (b64) { slipImg.src = b64; loader.style.display = 'none'; if(downloadBtn) downloadBtn.href = b64; }
+                            else { loader.innerText = 'ไม่สามารถโหลดภาพได้'; }
+                        };
+                        loadImg();
+                        
                         if (downloadBtn) {
-                            downloadBtn.href = card.slipImage;
                             downloadBtn.download = downloadFilename;
                             downloadBtn.onclick = () => markCardViewed(card.id);
                         }
@@ -2657,6 +2670,73 @@ img.src = e.target.result;
 
                 fragment.appendChild(item);
             }
+
+            if (!document.getElementById('lazy-spinner-style')) {
+                const style = document.createElement('style');
+                style.id = 'lazy-spinner-style';
+                style.innerHTML = '@keyframes spin { 100% { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const box = entry.target;
+                        const img = box.querySelector('.lazy-slip-image');
+                        const spinner = box.querySelector('.lazy-spinner');
+                        if (!img) return;
+                        
+                        const id = img.getAttribute('data-id');
+                        const cardObj = cards.find(c => c.id.toString() === id.toString());
+                        let thumbBase64 = null;
+                        if (cardObj && cardObj.comment && cardObj.comment.startsWith('CARD_INFO:')) {
+                            try {
+                                const info = JSON.parse(cardObj.comment.substring(10));
+                                if (info.thumb) thumbBase64 = info.thumb;
+                            } catch (e) {}
+                        }
+
+                        if (thumbBase64) {
+                            img.src = thumbBase64;
+                            img.style.display = 'block';
+                            if (spinner) spinner.style.display = 'none';
+                            box.style.background = 'transparent';
+                            observer.unobserve(box);
+                        } else {
+                            window.tuitionStore.getPaymentImage(id).then(base64 => {
+                                if (base64) {
+                                    img.src = base64;
+                                    img.style.display = 'block';
+                                    if (cardObj) cardObj.slipImage = base64;
+                                    
+                                    const cardContainer = box.closest('.slip-gallery-card');
+                                    if (cardContainer) {
+                                        const dlBtn = cardContainer.querySelector('.btn-admin-download-card');
+                                        if (dlBtn) dlBtn.setAttribute('data-href', base64);
+                                    }
+
+                                    // Migrate missing thumb
+                                    window.tuitionStore.generateThumbnail(base64).then(thumb => {
+                                        if (thumb && cardObj) {
+                                            let info = {};
+                                            if (cardObj.comment && cardObj.comment.startsWith('CARD_INFO:')) {
+                                                try { info = JSON.parse(cardObj.comment.substring(10)); } catch(e){}
+                                            }
+                                            info.thumb = thumb;
+                                            window.tuitionStore.updatePayment({ id: cardObj.id, comment: "CARD_INFO:" + JSON.stringify(info) }).catch(()=>{});
+                                        }
+                                    });
+                                }
+                                if (spinner) spinner.style.display = 'none';
+                                box.style.background = 'transparent';
+                            });
+                            observer.unobserve(box);
+                        }
+                    }
+                });
+            }, { rootMargin: '100px' });
+
+            fragment.querySelectorAll('.card-image-box').forEach(box => observer.observe(box));
 
             gallery.innerHTML = '';
             gallery.appendChild(fragment);
@@ -2825,8 +2905,9 @@ img.src = e.target.result;
                 };
 
                 item.innerHTML = `
-                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: transparent; border: none; position: relative; cursor: pointer;">
-                        <img src="${card.slipImage}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="ภาพฝึกงาน">
+                    <div class="card-image-box" style="width: 100%; aspect-ratio: 2 / 3; height: auto; border-radius: 0; overflow: hidden; background: #f0f0f0; border: none; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <span class="lazy-spinner" style="width: 24px; height: 24px; border: 3px solid #ccc; border-top-color: #333; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                        <img class="lazy-slip-image" data-id="${card.id}" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;" alt="ภาพฝึกงาน">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="font-size: 14px; font-weight: 700; color: var(--neutral-dark); text-align: center;">${cleanName} (${seq})</div>
@@ -2844,7 +2925,20 @@ img.src = e.target.result;
                     
                     if (modal && slipViewer && slipImg) {
                         slipViewer.style.display = 'block';
-                        slipImg.src = card.slipImage;
+                        slipImg.src = '';
+                        let loader = document.getElementById('full-img-loader');
+                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'color:white;text-align:center;margin-top:20px;'; slipViewer.prepend(loader); }
+                        loader.innerText = 'กำลังโหลดภาพขนาดปกติ...';
+                        loader.style.display = 'block';
+                        
+                        const loadImg = async () => {
+                            let b64 = card.slipImage;
+                            if (!b64) { b64 = await window.tuitionStore.getPaymentImage(card.id); card.slipImage = b64; }
+                            if (b64) { slipImg.src = b64; loader.style.display = 'none'; }
+                            else { loader.innerText = 'ไม่สามารถโหลดภาพได้'; }
+                        };
+                        loadImg();
+                        
                         if (downloadBtn) {
                             downloadBtn.style.display = 'none';
                         }
@@ -2898,6 +2992,66 @@ img.src = e.target.result;
 
                 fragment.appendChild(item);
             }
+
+            if (!document.getElementById('lazy-spinner-style')) {
+                const style = document.createElement('style');
+                style.id = 'lazy-spinner-style';
+                style.innerHTML = '@keyframes spin { 100% { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
+
+            const observer2 = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const box = entry.target;
+                        const img = box.querySelector('.lazy-slip-image');
+                        const spinner = box.querySelector('.lazy-spinner');
+                        if (!img) return;
+                        
+                        const id = img.getAttribute('data-id');
+                        const cardObj = cards.find(c => c.id.toString() === id.toString());
+                        let thumbBase64 = null;
+                        if (cardObj && cardObj.comment && cardObj.comment.startsWith('CARD_INFO:')) {
+                            try {
+                                const info = JSON.parse(cardObj.comment.substring(10));
+                                if (info.thumb) thumbBase64 = info.thumb;
+                            } catch (e) {}
+                        }
+
+                        if (thumbBase64) {
+                            img.src = thumbBase64;
+                            img.style.display = 'block';
+                            if (spinner) spinner.style.display = 'none';
+                            box.style.background = 'transparent';
+                            observer.unobserve(box);
+                        } else {
+                            window.tuitionStore.getPaymentImage(id).then(base64 => {
+                                if (base64) {
+                                    img.src = base64;
+                                    img.style.display = 'block';
+                                    if (cardObj) cardObj.slipImage = base64;
+                                    
+                                    window.tuitionStore.generateThumbnail(base64).then(thumb => {
+                                        if (thumb && cardObj) {
+                                            let info = {};
+                                            if (cardObj.comment && cardObj.comment.startsWith('CARD_INFO:')) {
+                                                try { info = JSON.parse(cardObj.comment.substring(10)); } catch(e){}
+                                            }
+                                            info.thumb = thumb;
+                                            window.tuitionStore.updatePayment({ id: cardObj.id, comment: "CARD_INFO:" + JSON.stringify(info) }).catch(()=>{});
+                                        }
+                                    });
+                                }
+                                if (spinner) spinner.style.display = 'none';
+                                box.style.background = 'transparent';
+                            });
+                            observer.unobserve(box);
+                        }
+                    }
+                });
+            }, { rootMargin: '100px' });
+
+            fragment.querySelectorAll('.card-image-box').forEach(box => observer2.observe(box));
 
             gallery.innerHTML = '';
             gallery.appendChild(fragment);

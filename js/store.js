@@ -873,7 +873,53 @@ class TuitionStore {
         return canvas.toDataURL('image/png');
     }
 
+    async generateThumbnail(base64Str, maxWidth = 300, maxHeight = 450) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round(height * maxWidth / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round(width * maxHeight / height);
+                        height = maxHeight;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
+            };
+            img.onerror = () => resolve(null);
+            img.src = base64Str;
+        });
+    }
+
     async saveIntroCard(studentId, cardId, imageBase64, commentText) {
+        let finalComment = commentText || 'ภาพฝึกงานนักศึกษา';
+        try {
+            const thumb = await this.generateThumbnail(imageBase64);
+            if (thumb) {
+                if (finalComment.startsWith('CARD_INFO:')) {
+                    const info = JSON.parse(finalComment.substring(10));
+                    info.thumb = thumb;
+                    finalComment = 'CARD_INFO:' + JSON.stringify(info);
+                } else {
+                    finalComment = 'CARD_INFO:' + JSON.stringify({ id: cardId, thumb: thumb });
+                }
+            }
+        } catch(e) {
+            console.warn("Could not generate thumbnail", e);
+        }
+
         const uniqueRefNo = `CARD-${cardId}-${Date.now()}`;
         const paymentData = {
             studentId: studentId,
@@ -884,7 +930,7 @@ class TuitionStore {
             status: 'card_new',
             refNo: uniqueRefNo,
             verificationDate: new Date().toISOString().slice(0, 19),
-            comment: commentText || 'ภาพฝึกงานนักศึกษา'
+            comment: finalComment
         };
 
         // Always insert new record for multiple uploads support
@@ -898,16 +944,13 @@ class TuitionStore {
         return data;
     }
 
-    /**
-     * Fetch all saved student intro cards from the database.
-     */
     async getIntroCards() {
         const cached = this._getCached('intro_cards');
         if (cached) return cached;
 
         const { data, error } = await this.supabase
             .from('payments')
-            .select('*')
+            .select('id, studentId, amount, dateTime, slipName, status, refNo, verificationDate, comment')
             .in('status', ['card', 'card_new'])
             .order('dateTime', { ascending: false });
         if (error) throw error;
@@ -915,6 +958,19 @@ class TuitionStore {
         const result = data || [];
         this._setCache('intro_cards', result);
         return result;
+    }
+
+    /**
+     * Fetch a specific payment image individually
+     */
+    async getPaymentImage(paymentId) {
+        const { data, error } = await this.supabase
+            .from('payments')
+            .select('slipImage')
+            .eq('id', paymentId)
+            .single();
+        if (error) return null;
+        return data.slipImage;
     }
 
     /**
