@@ -2314,6 +2314,130 @@ img.src = e.target.result;
         });
     }
 
+    async function openAdminStudentSlipsModal(studentId, studentName) {
+        const modal = document.getElementById('modal-student-slips');
+        const slipsGrid = document.getElementById('student-slips-grid');
+        const emptyState = document.getElementById('student-slips-empty-state');
+        const titleEl = modal.querySelector('h3');
+
+        if (!modal) return;
+        
+        if (titleEl) {
+            titleEl.innerHTML = `<i class="fa-solid fa-images" style="color: var(--primary);"></i> สลิปชำระเงินของ ${studentName}`;
+        }
+        
+        slipsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #86868b;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>กำลังโหลดสลิป...</div>';
+        slipsGrid.style.display = 'block';
+        emptyState.style.display = 'none';
+        modal.classList.add('active');
+        
+        const payments = await window.tuitionStore.getPaymentsByStudentId(studentId);
+        const slipPayments = payments.filter(p => p.slipImage && p.status !== 'card' && p.status !== 'card_new');
+
+        if (slipPayments.length === 0) {
+            emptyState.style.display = 'block';
+            slipsGrid.style.display = 'none';
+            slipsGrid.innerHTML = '';
+        } else {
+            emptyState.style.display = 'none';
+            slipsGrid.style.display = 'grid';
+            slipsGrid.innerHTML = '';
+
+            slipPayments.forEach(payment => {
+                const card = document.createElement('div');
+                card.className = 'slip-gallery-card';
+                card.style.background = 'var(--neutral-light)';
+                card.style.borderRadius = '12px';
+                card.style.padding = '12px';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '8px';
+                card.style.border = '1px solid var(--neutral-border)';
+                card.style.cursor = 'pointer';
+
+                let statusText = '';
+                let statusClass = '';
+                if (payment.status === 'approved') {
+                    statusText = 'อนุมัติแล้ว';
+                    statusClass = 'badge-paid';
+                } else if (payment.status === 'rejected') {
+                    statusText = 'ปฏิเสธ';
+                    statusClass = 'badge-rejected';
+                } else {
+                    statusText = 'รอตรวจสอบ';
+                    statusClass = 'badge-pending';
+                }
+
+                const formattedDate = new Date(payment.dateTime).toLocaleString('th-TH', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
+                }).replace(':', '.');
+
+                let thumbBase64 = null;
+                if (payment.comment && payment.comment.startsWith('CARD_INFO:')) {
+                    try {
+                        const info = JSON.parse(payment.comment.substring(10));
+                        if (info.thumb) thumbBase64 = info.thumb;
+                    } catch (e) {}
+                }
+                const imgSrc = thumbBase64 || payment.slipImage;
+
+                card.innerHTML = `
+                    <div style="width: 100%; height: 200px; border-radius: 8px; overflow: hidden; background: #fff; position: relative;">
+                        <img src="${imgSrc}" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="สลิป">
+                        <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                            <i class="fa-solid fa-expand"></i>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--neutral-dark);">${payment.amount > 0 ? payment.amount.toLocaleString() + ' THB' : '<span style="font-size:11px; color:#86868b; font-weight:500;">(ไม่ระบุยอด)</span>'}</span>
+                        <span class="status-badge ${statusClass}" style="font-size: 10px; padding: 3px 8px; scale: 0.95; transform-origin: right;">${statusText}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #86868b; font-weight: 500;">ส่งวันที่: ${formattedDate}</div>
+                `;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                deleteBtn.style = "position: absolute; bottom: 8px; right: 8px; background: var(--danger); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10; transition: transform 0.2s; opacity: 0.9;";
+                deleteBtn.title = "ลบสลิปนี้";
+                deleteBtn.onmouseover = () => { deleteBtn.style.transform = 'scale(1.15)'; deleteBtn.style.opacity = '1'; };
+                deleteBtn.onmouseout = () => { deleteBtn.style.transform = 'scale(1)'; deleteBtn.style.opacity = '0.9'; };
+                
+                deleteBtn.onclick = async (e) => {
+                    e.stopPropagation(); // Prevent opening the inspector
+                    if (confirm(`คุณต้องการลบสลิปยอด ${payment.amount > 0 ? payment.amount.toLocaleString() : 'ไม่ระบุยอด'} บาท ใช่หรือไม่?\\nการกระทำนี้ไม่สามารถกู้คืนได้`)) {
+                        try {
+                            deleteBtn.disabled = true;
+                            deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                            await window.tuitionStore.deletePayment(payment.id);
+                            
+                            // re-fetch dashboard behind the modal
+                            if (typeof updateAdminDashboard === 'function') {
+                                updateAdminDashboard();
+                            }
+                            
+                            // Re-open/refresh this modal
+                            await openAdminStudentSlipsModal(studentId, studentName);
+                        } catch (err) {
+                            alert('เกิดข้อผิดพลาดในการลบสลิป: ' + err.message);
+                            deleteBtn.disabled = false;
+                            deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                        }
+                    }
+                };
+
+                const imgContainer = card.querySelector('div:first-child');
+                imgContainer.appendChild(deleteBtn);
+
+                card.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    openSlipInspector(payment.id);
+                });
+
+                slipsGrid.appendChild(card);
+            });
+        }
+    }
+
     async function renderAdminStudentsList() {
         const tbody = document.getElementById('admin-students-table-body');
 
@@ -2368,7 +2492,7 @@ img.src = e.target.result;
                 <td style="text-align: center; font-family: monospace; font-weight: 700;">${s.id}</td>
                 <td style="text-align: center; font-weight: 500;">${s.room}</td>
                 <td style="text-align: center; font-weight: 700;">
-                    <div>${cleanName}</div>
+                    <a href="javascript:void(0)" class="student-name-link" data-id="${s.id}" data-name="${cleanName}" style="color: var(--primary); text-decoration: none; cursor: pointer; display: inline-block; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(79, 70, 229, 0.1)'" onmouseout="this.style.background='transparent'">${cleanName}</a>
                 </td>
                 <td style="text-align: center; font-weight: 700; color: var(--success);">${s.paidAmount.toLocaleString()} บ.</td>
                 <td style="text-align: center; font-weight: 800; color: var(--danger);">${remaining.toLocaleString()} บ.</td>
@@ -2380,6 +2504,16 @@ img.src = e.target.result;
             `;
 
             tbody.appendChild(row);
+        });
+
+        // Attach name click events
+        document.querySelectorAll('.student-name-link').forEach(link => {
+            link.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const stdId = link.getAttribute('data-id');
+                const stdName = link.getAttribute('data-name');
+                await openAdminStudentSlipsModal(stdId, stdName);
+            });
         });
 
         // Delete events moved to modal
@@ -2604,16 +2738,17 @@ img.src = e.target.result;
                     if (modal && slipViewer && slipImg) {
                         slipViewer.style.display = 'block';
                         slipImg.src = '';
+                        slipImg.style.display = 'none';
                         let loader = document.getElementById('full-img-loader');
-                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'color:white;text-align:center;margin-top:20px;'; slipViewer.prepend(loader); }
-                        loader.innerText = 'กำลังโหลดภาพขนาดปกติ...';
-                        loader.style.display = 'block';
+                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; justify-content:center; align-items:center; z-index:10;'; slipViewer.style.position = 'relative'; slipViewer.style.minHeight = '200px'; slipViewer.prepend(loader); }
+                        loader.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="font-size: 48px; color: var(--primary);"></i>';
+                        loader.style.display = 'flex';
                         
                         const loadImg = async () => {
                             let b64 = card.slipImage;
                             if (!b64) { b64 = await window.tuitionStore.getPaymentImage(card.id); card.slipImage = b64; }
-                            if (b64) { slipImg.src = b64; loader.style.display = 'none'; if(downloadBtn) downloadBtn.href = b64; }
-                            else { loader.innerText = 'ไม่สามารถโหลดภาพได้'; }
+                            if (b64) { slipImg.src = b64; slipImg.style.display = 'block'; loader.style.display = 'none'; if(downloadBtn) downloadBtn.href = b64; }
+                            else { loader.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถโหลดภาพได้'; }
                         };
                         loadImg();
                         
@@ -2942,16 +3077,17 @@ img.src = e.target.result;
                     if (modal && slipViewer && slipImg) {
                         slipViewer.style.display = 'block';
                         slipImg.src = '';
+                        slipImg.style.display = 'none';
                         let loader = document.getElementById('full-img-loader');
-                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'color:white;text-align:center;margin-top:20px;'; slipViewer.prepend(loader); }
-                        loader.innerText = 'กำลังโหลดภาพขนาดปกติ...';
-                        loader.style.display = 'block';
+                        if (!loader) { loader = document.createElement('div'); loader.id = 'full-img-loader'; loader.style = 'position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; justify-content:center; align-items:center; z-index:10;'; slipViewer.style.position = 'relative'; slipViewer.style.minHeight = '200px'; slipViewer.prepend(loader); }
+                        loader.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="font-size: 48px; color: var(--primary);"></i>';
+                        loader.style.display = 'flex';
                         
                         const loadImg = async () => {
                             let b64 = card.slipImage;
                             if (!b64) { b64 = await window.tuitionStore.getPaymentImage(card.id); card.slipImage = b64; }
-                            if (b64) { slipImg.src = b64; loader.style.display = 'none'; }
-                            else { loader.innerText = 'ไม่สามารถโหลดภาพได้'; }
+                            if (b64) { slipImg.src = b64; slipImg.style.display = 'block'; loader.style.display = 'none'; }
+                            else { loader.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถโหลดภาพได้'; }
                         };
                         loadImg();
                         
